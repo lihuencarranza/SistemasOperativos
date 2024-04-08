@@ -89,6 +89,12 @@ exec_cmd(struct cmd *cmd)
 		// spawns a command
 		//
 		// Your code here
+		printf("Arguments: %s\n", cmd->scmd);
+		char path[1024] = "/bin/";
+		strcat(path, cmd->scmd);
+		char *args = split_line(path, ' ');
+		printf("Path: %s\n", path);
+		execv(path, args);
 		printf("Commands are not yet implemented\n");
 		_exit(-1);
 		break;
