@@ -48,7 +48,15 @@ get_environ_value(char *arg, char *value, int idx)
 static void
 set_environ_vars(char **eargv, int eargc)
 {
-	// Your code here
+	char key[BUFLEN];
+	char value[BUFLEN];
+	for (int i = 0; i < eargc; i++) {
+		get_environ_key(eargv[i], key);
+		get_environ_value(eargv[i], value, block_contains(eargv[i], '='));
+		setenv(key, value, 1);
+	}
+	//printf("Key: %s\n", eargv[0]);
+	//printf("Value: %s\n", eargv[1]);
 }
 
 // opens the file in which the stdin/stdout/stderr
@@ -89,22 +97,26 @@ exec_cmd(struct cmd *cmd)
 		// spawns a command
 		//
 		// Your code here
-		printf("Arguments: %s\n", cmd->scmd);
-		char path[1024] = "/bin/";
-		strcat(path, cmd->scmd);
-		char *args = split_line(path, ' ');
-		printf("Path: %s\n", path);
-		execv(path, args);
-		printf("Commands are not yet implemented\n");
-		_exit(-1);
+		
+
+		e = (struct execcmd *) cmd;
+		
+		//set_environ_vars(e->eargv, e->eargc);
+
+		if (execvp(e->argv[0], e->argv) < 0) {
+			perror("Error");
+		}
+
 		break;
 
 	case BACK: {
 		// runs a command in background
-		//
-		// Your code here
-		printf("Background process are not yet implemented\n");
-		_exit(-1);
+		b = (struct backcmd *) cmd;
+		
+		exec_cmd(b->c);
+		perror("Error in background process\n");
+
+		
 		break;
 	}
 
