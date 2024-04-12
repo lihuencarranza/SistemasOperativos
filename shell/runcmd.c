@@ -57,8 +57,13 @@ run_cmd(char *cmd)
 	//
 	// Your code here
 
-	// waits for the process to finish
-	waitpid(p, &status, 0);
+	if (parsed->type == BACK){
+		print_back_info(parsed);
+	}
+	else{
+		// waits for the process to finish
+		waitpid(p, &status, 0);
+	}
 
 	print_status_info(parsed);
 
