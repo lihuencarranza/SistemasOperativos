@@ -101,8 +101,17 @@ exec_cmd(struct cmd *cmd)
 
 		e = (struct execcmd *) cmd;
 		printf("Llego a ejecutar un comando EXEC\n");
+		printf("e->argv[0] es %s, y e->argv es %s\n", e->argv[0], e->argv[0]);
+		int i = 0;
+		while (e->argv[i])
+		{
+			printf("e->argv[0] es %s, y e->argv[%i] es %s\n", e->argv[0],i, e->argv[i]);
+			i++;
+		}
 		
-		//set_environ_vars(e->eargv, e->eargc);
+		
+		
+		set_environ_vars(e->eargv, e->eargc);
 
 		if (execvp(e->argv[0], e->argv) < 0) {
 			perror("Error");
