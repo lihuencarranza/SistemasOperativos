@@ -189,9 +189,9 @@ parse_line(char *buf)
 	char *right = split_line(buf, '|');
 
 	l = parse_cmd(buf);
-	
-	if (strlen(right) != 0) 
-		r = parse_line(right); // si me dan mas de un pipe
+
+	if (strlen(right) != 0)
+		r = parse_line(right);  // si me dan mas de un pipe
 
 	return pipe_cmd_create(l, r);
 }

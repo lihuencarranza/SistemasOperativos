@@ -1,6 +1,7 @@
 #ifndef RUNCMD_H
 #define RUNCMD_H
 
+#include "utils.h"
 #include "defs.h"
 #include "parsing.h"
 #include "exec.h"

@@ -51,7 +51,21 @@ pwd(char *cmd)
 int
 history(char *cmd)
 {
-	// Your code here
+	if (strcmp(cmd, "history") != 0)
+		return 0;
 
-	return 0;
+	FILE *f;
+	char buffer[BUFLEN];
+
+	f = fopen(".sh_history", "r");
+	if (!f)
+		return 1;
+	int i = 0;
+	while (fgets(buffer, sizeof(buffer), f)) {
+		fprintf(stdout, "%d  %s", i, buffer);
+		i++;
+	}
+
+	fclose(f);
+	return 1;
 }

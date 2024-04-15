@@ -31,6 +31,7 @@ run_cmd(char *cmd)
 	if (pwd(cmd))
 		return 0;
 
+	save_cmd(cmd);
 	// parses the command line
 	parsed = parse_line(cmd);
 
@@ -57,10 +58,9 @@ run_cmd(char *cmd)
 	//
 	// Your code here
 
-	if (parsed->type == BACK){
+	if (parsed->type == BACK) {
 		print_back_info(parsed);
-	}
-	else{
+	} else {
 		// waits for the process to finish
 		waitpid(p, &status, 0);
 	}

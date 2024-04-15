@@ -55,8 +55,8 @@ set_environ_vars(char **eargv, int eargc)
 		get_environ_value(eargv[i], value, block_contains(eargv[i], '='));
 		setenv(key, value, 1);
 	}
-	//printf("Key: %s\n", eargv[0]);
-	//printf("Value: %s\n", eargv[1]);
+	// printf("Key: %s\n", eargv[0]);
+	// printf("Value: %s\n", eargv[1]);
 }
 
 // opens the file in which the stdin/stdout/stderr
@@ -97,20 +97,23 @@ exec_cmd(struct cmd *cmd)
 		// spawns a command
 		//
 		// Your code here
-		
+
 
 		e = (struct execcmd *) cmd;
 		printf("Llego a ejecutar un comando EXEC\n");
-		printf("e->argv[0] es %s, y e->argv es %s\n", e->argv[0], e->argv[0]);
+		printf("e->argv[0] es %s, y e->argv es %s\n",
+		       e->argv[0],
+		       e->argv[0]);
 		int i = 0;
-		while (e->argv[i])
-		{
-			printf("e->argv[0] es %s, y e->argv[%i] es %s\n", e->argv[0],i, e->argv[i]);
+		while (e->argv[i]) {
+			printf("e->argv[0] es %s, y e->argv[%i] es %s\n",
+			       e->argv[0],
+			       i,
+			       e->argv[i]);
 			i++;
 		}
-		
-		
-		
+
+
 		set_environ_vars(e->eargv, e->eargc);
 
 		if (execvp(e->argv[0], e->argv) < 0) {
@@ -126,13 +129,13 @@ exec_cmd(struct cmd *cmd)
 
 		exec_cmd(b->c);
 		int pid = fork();
-		if (pid == 0){
-			//hijo
+		if (pid == 0) {
+			// hijo
 			exec_cmd(b->c);
 		}
 		perror("Error in background process\n");
 
-		
+
 		break;
 	}
 
