@@ -73,8 +73,8 @@ static int
 open_redir_fd(char *file, int flags)
 {
 	// Your code here
-
-	return -1;
+	int fd = open(file, flags, S_IWUSR | S_IRUSR);
+	return fd;
 }
 
 // executes a command - does not return
@@ -97,8 +97,6 @@ exec_cmd(struct cmd *cmd)
 		// spawns a command
 		//
 		// Your code here
-
-
 		e = (struct execcmd *) cmd;
 		printf("Llego a ejecutar un comando EXEC\n");
 		printf("e->argv[0] es %s, y e->argv es %s\n",
@@ -147,6 +145,13 @@ exec_cmd(struct cmd *cmd)
 		// is greater than zero
 		//
 		// Your code here
+		r = (struct execcmd *) cmd;
+	 	if(strlen(r->out_file) > 0){ //TODO: revisar los otros casos y encapsular
+			int fd = open_redir_fd(r->out_file, O_CREAT | O_WRONLY | O_TRUNC);
+			int fd2 = dup2(fd,STDOUT_FILENO); //Cambio el fd 1 para que apunte al nuevo
+			close(fd);
+		}
+		
 		printf("Redirections are not yet implemented\n");
 		_exit(-1);
 		break;
