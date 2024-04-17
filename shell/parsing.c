@@ -102,7 +102,20 @@ static char *
 expand_environ_var(char *arg)
 {
 	// Your code here
+	fprintf(stdout, "Env Var: %s\n",arg);
+	if (arg[0] == '$') {
+	// 	fprintf(stdout, "Env Var sanitizada: %s\n",arg+1);
 
+		char *env_var = getenv(arg+1);
+		if (env_var == NULL){
+			free(arg);
+			arg = (char *) malloc(sizeof(char));
+			return arg;
+		}
+		free(arg);
+		arg = (char *) malloc(strlen(env_var) + 1);
+		strcpy(arg, env_var);
+	}
 	return arg;
 }
 
