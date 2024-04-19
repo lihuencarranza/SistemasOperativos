@@ -77,6 +77,15 @@ open_redir_fd(char *file, int flags)
 	return fd;
 }
 
+// private function to encapsule the redirection
+void
+redir_stdout(char *file)
+{
+	int fd = open_redir_fd(file, O_CREAT | O_WRONLY | O_TRUNC);
+	int fd2 = dup2(fd, STDOUT_FILENO); //Cambio el fd 1 para que apunte al nuevo
+	close(fd);
+}
+
 // executes a command - does not return
 //
 // Hint:
@@ -146,10 +155,11 @@ exec_cmd(struct cmd *cmd)
 		//
 		// Your code here
 		r = (struct execcmd *) cmd;
-	 	if(strlen(r->out_file) > 0){ //TODO: revisar los otros casos y encapsular
-			int fd = open_redir_fd(r->out_file, O_CREAT | O_WRONLY | O_TRUNC);
-			int fd2 = dup2(fd,STDOUT_FILENO); //Cambio el fd 1 para que apunte al nuevo
-			close(fd);
+	 	if(strlen(r->out_file) > 0){ //Caso redir output
+			//habria que forkear aca? (TODO)
+			redir_stdout(r->out_file);
+			r->type = EXEC; //Le cambio el type porque ya cambie el fd
+			exec_cmd(r);
 		}
 		
 		printf("Redirections are not yet implemented\n");
