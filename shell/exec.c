@@ -73,16 +73,35 @@ static int
 open_redir_fd(char *file, int flags)
 {
 	// Your code here
-	int fd = open(file, flags, S_IWUSR | S_IRUSR);
+	int fd;
+	if (flags & O_CREAT){
+		fd = open(file, flags, S_IWUSR | S_IRUSR);
+	}
+	else{
+		fd = open(file, flags);
+	}
+	if (fd < 0){
+		perror("Error opening file");
+		exit(-1);
+	}
 	return fd;
 }
 
-// private function to encapsule the redirection
+// private function to encapsule the redirection of stdout
 void
 redir_stdout(char *file)
 {
-	int fd = open_redir_fd(file, O_CREAT | O_WRONLY | O_TRUNC);
+	int fd = open_redir_fd(file, O_CREAT | O_WRONLY);
 	int fd2 = dup2(fd, STDOUT_FILENO); //Cambio el fd 1 para que apunte al nuevo
+	close(fd);
+}
+
+// private function to encapsule the redirection of stdin
+void
+redir_stdin(char *file)
+{
+	int fd = open_redir_fd(file, O_RDONLY);
+	int fd2 = dup2(fd, STDIN_FILENO); //Cambio el fd 1 para que apunte al nuevo
 	close(fd);
 }
 
@@ -122,11 +141,12 @@ exec_cmd(struct cmd *cmd)
 
 
 		set_environ_vars(e->eargv, e->eargc);
-
+		printf("files: %d %d %d\n", e->out_file, e->in_file, e->err_file);
 		if (execvp(e->argv[0], e->argv) < 0) {
 			perror("Error");
 		}
 
+		fprintf(stdout, "Termino el comando\n");
 		break;
 
 	case BACK: {
@@ -156,12 +176,21 @@ exec_cmd(struct cmd *cmd)
 		// Your code here
 		r = (struct execcmd *) cmd;
 	 	if(strlen(r->out_file) > 0){ //Caso redir output
-			//habria que forkear aca? (TODO)
 			redir_stdout(r->out_file);
 			r->type = EXEC; //Le cambio el type porque ya cambie el fd
 			exec_cmd(r);
 		}
-		
+		if(strlen(r->in_file) > 0){ //Caso redir input
+			redir_stdin(r->in_file);
+			r->type = EXEC; //Le cambio el type porque ya cambie el fd
+			exec_cmd(r);
+		}
+		if(strlen(r->err_file) > 0){ //Caso redir error
+			//redir_stderr(r->err_file);
+			r->type = EXEC; //Le cambio el type porque ya cambie el fd
+			exec_cmd(r);
+		}
+
 		printf("Redirections are not yet implemented\n");
 		_exit(-1);
 		break;
