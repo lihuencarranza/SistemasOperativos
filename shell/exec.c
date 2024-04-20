@@ -136,8 +136,8 @@ exec_cmd(struct cmd *cmd)
 		//
 		// Your code here
 		e = (struct execcmd *) cmd;
-		printf("Llego a ejecutar un comando EXEC\n");
-		printf("e->argv[0] es %s, y e->argv es %s\n",
+		//printf("Llego a ejecutar un comando EXEC\n");
+		/*printf("e->argv[0] es %s, y e->argv es %s\n",
 		       e->argv[0],
 		       e->argv[0]);
 		int i = 0;
@@ -147,16 +147,16 @@ exec_cmd(struct cmd *cmd)
 			       i,
 			       e->argv[i]);
 			i++;
-		}
+		}*/
 
 
 		set_environ_vars(e->eargv, e->eargc);
-		printf("files: %d %d %d\n", e->out_file, e->in_file, e->err_file);
+		//printf("files: %d %d %d\n", e->out_file, e->in_file, e->err_file);
 		if (execvp(e->argv[0], e->argv) < 0) {
 			perror("Error");
 		}
 
-		fprintf(stdout, "Termino el comando\n");
+		//fprintf(stdout, "Termino el comando\n");
 		break;
 
 	case BACK: {
