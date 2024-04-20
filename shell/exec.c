@@ -218,6 +218,7 @@ exec_cmd(struct cmd *cmd)
 		if (pid_left == 0){
 			close(fd[READ]);
 			dup2(fd[WRITE], STDOUT_FILENO);
+			close(fd[WRITE]);
 			exec_cmd(p->leftcmd);
 		}
 
@@ -232,6 +233,7 @@ exec_cmd(struct cmd *cmd)
 		if (pid_right == 0){
 			close(fd[WRITE]);
 			dup2(fd[READ], STDIN_FILENO);
+			close(fd[READ]);
 			exec_cmd(p->rightcmd);
 		}
 
