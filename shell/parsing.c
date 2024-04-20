@@ -103,26 +103,26 @@ static char *
 expand_environ_var(char *arg)
 {
 	// Your code here
-	
+	if (strcmp(arg, "$?") == 0){
+		sprintf(arg,"%i", status); 
+		return arg;
+	}
+
 	if (arg[0] == '$') {
-		if (strcmp(arg, "$?") == 0){
-			sprintf(arg,"%i", status); 
-			return arg;
-		}
 		
 		char *env = getenv(arg+1);	
 		if (!env){
-			return NULL;
+			strcpy(arg, "");
+			return arg;
 		}
 
 		size_t env_len = strlen(env);
 		if (env_len == 0){
-			return NULL;
+			strcpy(arg, "");
 		} else if (strlen(arg) < env_len){
 			arg = realloc(arg, 1 + sizeof(char) * env_len);
+			strcpy(arg, env);
 		}
-		
-		strcpy(arg, env);
 	}
 	
 	return arg;
@@ -156,7 +156,9 @@ parse_exec(char *buf_cmd)
 
 		tok = expand_environ_var(tok);
 
-		c->argv[argc++] = tok;
+		if (tok && strlen(tok)) {
+			c->argv[argc++] = tok;
+		}
 	}
 
 	c->argv[argc] = (char *) NULL;
