@@ -109,10 +109,15 @@ redir_stdout(char *file)
 void
 redir_stderr(char *file)
 {
-	printf("Redir stderr\n");
 	int fd = open_redir_fd(file, O_CREAT | O_WRONLY);
 	int fd2 = dup2(fd, STDERR_FILENO); //Cambio el fd 2 para que apunte al nuevo
 	close(fd);
+}
+
+void
+redir_strerr_to_stdout()
+{
+	dup2(STDOUT_FILENO, STDERR_FILENO);
 }
 
 // executes a command - does not return
@@ -170,26 +175,23 @@ exec_cmd(struct cmd *cmd)
 		r = (struct execcmd *) cmd;
 	 	if(strlen(r->out_file) > 0){ //Caso redir output
 			redir_stdout(r->out_file);
-			r->type = EXEC; //Le cambio el type porque ya cambie el fd
-			exec_cmd(r);
 		}
 		if(strlen(r->in_file) > 0){ //Caso redir input
 			redir_stdin(r->in_file);
-			r->type = EXEC; //Le cambio el type porque ya cambie el fd
-			exec_cmd(r);
-		}
-		if(strcmp(r->err_file, "&1")==0){ //Caso combinando
-			printf("Combinando stdout y stderr\n");
-			dup2(STDOUT_FILENO, STDERR_FILENO);
-			r->type = EXEC; //Le cambio el type porque ya cambie el fd
-			exec_cmd(r);
 		}
 		if(strlen(r->err_file) > 0){ //Caso redir error
-			redir_stderr(r->err_file);
-			r->type = EXEC; //Le cambio el type porque ya cambie el fd
-			exec_cmd(r);
+			if(strcmp(r->err_file, "&1")==0){ //Caso combinando
+				redir_strerr_to_stdout();
+			}
+			else{
+				redir_stderr(r->err_file);
+			}
+			
 		}
 
+		r->type = EXEC; //Le cambio el type porque ya cambie el fd
+		exec_cmd(r);
+		
 		printf("Redirections are not yet implemented\n");
 		_exit(-1);
 		break;
