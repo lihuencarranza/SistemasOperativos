@@ -100,7 +100,7 @@ redir_stdin(char *file)
 void
 redir_stdout(char *file)
 {
-	int fd = open_redir_fd(file, O_CREAT | O_WRONLY);
+	int fd = open_redir_fd(file, O_CREAT | O_WRONLY| O_TRUNC);
 	int fd2 = dup2(fd, STDOUT_FILENO); //Cambio el fd 1 para que apunte al nuevo
 	close(fd);
 }
@@ -136,27 +136,10 @@ exec_cmd(struct cmd *cmd)
 		//
 		// Your code here
 		e = (struct execcmd *) cmd;
-		printf("Llego a ejecutar un comando EXEC\n");
-		printf("e->argv[0] es %s, y e->argv es %s\n",
-		       e->argv[0],
-		       e->argv[0]);
-		int i = 0;
-		while (e->argv[i]) {
-			printf("e->argv[0] es %s, y e->argv[%i] es %s\n",
-			       e->argv[0],
-			       i,
-			       e->argv[i]);
-			i++;
-		}
-
-
-		set_environ_vars(e->eargv, e->eargc);
-		printf("files: %d %d %d\n", e->out_file, e->in_file, e->err_file);
 		if (execvp(e->argv[0], e->argv) < 0) {
 			perror("Error");
+			exit(-1);
 		}
-
-		fprintf(stdout, "Termino el comando\n");
 		break;
 
 	case BACK: {
@@ -195,6 +178,12 @@ exec_cmd(struct cmd *cmd)
 			r->type = EXEC; //Le cambio el type porque ya cambie el fd
 			exec_cmd(r);
 		}
+		if(strcmp(r->err_file, "&1")==0){ //Caso combinando
+			printf("Combinando stdout y stderr\n");
+			dup2(STDOUT_FILENO, STDERR_FILENO);
+			r->type = EXEC; //Le cambio el type porque ya cambie el fd
+			exec_cmd(r);
+		}
 		if(strlen(r->err_file) > 0){ //Caso redir error
 			redir_stderr(r->err_file);
 			r->type = EXEC; //Le cambio el type porque ya cambie el fd
@@ -210,12 +199,52 @@ exec_cmd(struct cmd *cmd)
 		// pipes two commands
 		//
 		// Your code here
-		printf("Pipes are not yet implemented\n");
+		p = (struct pipecmd *) cmd;
+		int fd[2];
+
+		if (pipe(fd) < 0) {
+			perror("Error creating pipe\n");
+			exit(-1);
+		}
+
+		int pid_left = fork();
+		if (pid_left < 0) {
+			perror("Error in fork\n");
+			close(fd[READ]);
+			close(fd[WRITE]);
+			exit(-1);
+		}
+
+		if (pid_left == 0){
+			close(fd[READ]);
+			dup2(fd[WRITE], STDOUT_FILENO);
+			exec_cmd(p->leftcmd);
+		}
+
+		int pid_right= fork();
+		if (pid_right < 0) {
+			perror("Error in fork\n");
+			close(fd[READ]);
+			close(fd[WRITE]);
+			exit(-1);
+		}
+		
+		if (pid_right == 0){
+			close(fd[WRITE]);
+			dup2(fd[READ], STDIN_FILENO);
+			exec_cmd(p->rightcmd);
+		}
+
+		close(fd[READ]);
+		close(fd[WRITE]);
+
+		waitpid(pid_left, NULL, 0);
+		waitpid(pid_right, NULL, 0);
 
 		// free the memory allocated
 		// for the pipe tree structure
-		free_command(parsed_pipe);
-
+		//free_command(parsed_pipe); //variable global
+		
 		break;
 	}
 	}

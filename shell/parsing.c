@@ -102,7 +102,6 @@ static char *
 expand_environ_var(char *arg)
 {
 	// Your code here
-	fprintf(stdout, "Env Var: %s\n",arg);
 	if (arg[0] == '$') {
 		char *env_var = getenv(arg+1);
 		if (env_var == NULL){
