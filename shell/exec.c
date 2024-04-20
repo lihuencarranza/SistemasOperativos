@@ -100,7 +100,7 @@ redir_stdin(char *file)
 void
 redir_stdout(char *file)
 {
-	int fd = open_redir_fd(file, O_CREAT | O_WRONLY);
+	int fd = open_redir_fd(file, O_CREAT | O_WRONLY| O_TRUNC);
 	int fd2 = dup2(fd, STDOUT_FILENO); //Cambio el fd 1 para que apunte al nuevo
 	close(fd);
 }
@@ -109,10 +109,15 @@ redir_stdout(char *file)
 void
 redir_stderr(char *file)
 {
-	printf("Redir stderr\n");
 	int fd = open_redir_fd(file, O_CREAT | O_WRONLY);
 	int fd2 = dup2(fd, STDERR_FILENO); //Cambio el fd 2 para que apunte al nuevo
 	close(fd);
+}
+
+void
+redir_strerr_to_stdout()
+{
+	dup2(STDOUT_FILENO, STDERR_FILENO);
 }
 
 // executes a command - does not return
@@ -136,27 +141,10 @@ exec_cmd(struct cmd *cmd)
 		//
 		// Your code here
 		e = (struct execcmd *) cmd;
-		//printf("Llego a ejecutar un comando EXEC\n");
-		/*printf("e->argv[0] es %s, y e->argv es %s\n",
-		       e->argv[0],
-		       e->argv[0]);
-		int i = 0;
-		while (e->argv[i]) {
-			printf("e->argv[0] es %s, y e->argv[%i] es %s\n",
-			       e->argv[0],
-			       i,
-			       e->argv[i]);
-			i++;
-		}*/
-
-
-		set_environ_vars(e->eargv, e->eargc);
-		//printf("files: %d %d %d\n", e->out_file, e->in_file, e->err_file);
 		if (execvp(e->argv[0], e->argv) < 0) {
 			perror("Error");
+			exit(-1);
 		}
-
-		//fprintf(stdout, "Termino el comando\n");
 		break;
 
 	case BACK: {
@@ -187,20 +175,23 @@ exec_cmd(struct cmd *cmd)
 		r = (struct execcmd *) cmd;
 	 	if(strlen(r->out_file) > 0){ //Caso redir output
 			redir_stdout(r->out_file);
-			r->type = EXEC; //Le cambio el type porque ya cambie el fd
-			exec_cmd(r);
 		}
 		if(strlen(r->in_file) > 0){ //Caso redir input
 			redir_stdin(r->in_file);
-			r->type = EXEC; //Le cambio el type porque ya cambie el fd
-			exec_cmd(r);
 		}
 		if(strlen(r->err_file) > 0){ //Caso redir error
-			redir_stderr(r->err_file);
-			r->type = EXEC; //Le cambio el type porque ya cambie el fd
-			exec_cmd(r);
+			if(strcmp(r->err_file, "&1")==0){ //Caso combinando
+				redir_strerr_to_stdout();
+			}
+			else{
+				redir_stderr(r->err_file);
+			}
+			
 		}
 
+		r->type = EXEC; //Le cambio el type porque ya cambie el fd
+		exec_cmd(r);
+		
 		printf("Redirections are not yet implemented\n");
 		_exit(-1);
 		break;
@@ -210,12 +201,54 @@ exec_cmd(struct cmd *cmd)
 		// pipes two commands
 		//
 		// Your code here
-		printf("Pipes are not yet implemented\n");
+		p = (struct pipecmd *) cmd;
+		int fd[2];
+
+		if (pipe(fd) < 0) {
+			perror("Error creating pipe\n");
+			exit(-1);
+		}
+
+		int pid_left = fork();
+		if (pid_left < 0) {
+			perror("Error in fork\n");
+			close(fd[READ]);
+			close(fd[WRITE]);
+			exit(-1);
+		}
+
+		if (pid_left == 0){
+			close(fd[READ]);
+			dup2(fd[WRITE], STDOUT_FILENO);
+			close(fd[WRITE]);
+			exec_cmd(p->leftcmd);
+		}
+
+		int pid_right= fork();
+		if (pid_right < 0) {
+			perror("Error in fork\n");
+			close(fd[READ]);
+			close(fd[WRITE]);
+			exit(-1);
+		}
+		
+		if (pid_right == 0){
+			close(fd[WRITE]);
+			dup2(fd[READ], STDIN_FILENO);
+			close(fd[READ]);
+			exec_cmd(p->rightcmd);
+		}
+
+		close(fd[READ]);
+		close(fd[WRITE]);
+
+		waitpid(pid_left, NULL, 0);
+		waitpid(pid_right, NULL, 0);
 
 		// free the memory allocated
 		// for the pipe tree structure
-		free_command(parsed_pipe);
-
+		//free_command(parsed_pipe); //variable global
+		
 		break;
 	}
 	}
