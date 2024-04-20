@@ -1,5 +1,6 @@
 #include "parsing.h"
 
+extern int status;
 // parses an argument of the command stream input
 static char *
 get_token(char *buf, int idx)
@@ -102,18 +103,28 @@ static char *
 expand_environ_var(char *arg)
 {
 	// Your code here
-	fprintf(stdout, "Env Var: %s\n",arg);
+	
 	if (arg[0] == '$') {
-		char *env_var = getenv(arg+1);
-		if (env_var == NULL){
-			free(arg);
-			arg = (char *) malloc(sizeof(char));
+		if (strcmp(arg, "$?") == 0){
+			sprintf(arg,"%i", status); 
 			return arg;
 		}
-		free(arg);
-		arg = (char *) malloc(strlen(env_var) + 1);
-		strcpy(arg, env_var);
+		
+		char *env = getenv(arg+1);	
+		if (!env){
+			return NULL;
+		}
+
+		size_t env_len = strlen(env);
+		if (env_len == 0){
+			return NULL;
+		} else if (strlen(arg) < env_len){
+			arg = realloc(arg, 1 + sizeof(char) * env_len);
+		}
+		
+		strcpy(arg, env);
 	}
+	
 	return arg;
 }
 
