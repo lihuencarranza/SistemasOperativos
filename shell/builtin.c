@@ -7,7 +7,10 @@
 int
 exit_shell(char *cmd)
 {
-	return strcmp(cmd, "exit") == 0;
+	if (strcmp(cmd, "exit") == 0)
+		return 1;
+
+	return 0;
 }
 
 // returns true if "chdir" was performed
@@ -64,7 +67,7 @@ pwd(char *cmd)
 	if (!strcmp(cmd, "pwd")) {
 		char *path = getcwd(NULL, 100);
 		if (path == NULL) {
-			return -1;
+			return 1;
 		}
 	}
 	return 0;
