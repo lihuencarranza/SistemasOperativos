@@ -138,18 +138,30 @@ exec_cmd(struct cmd *cmd)
 	switch (cmd->type) {
 	case EXEC:
 		// spawns a command
+		//
+		// Your code here
 		e = (struct execcmd *) cmd;
-		if (execvp(e->argv[0], e->argv) < 0) {
-			perror("Error");
-			exit(-1);
+		if (strstr(e->scmd, "env") != NULL) {
+			set_environ_vars(e->eargv, e->eargc);
 		}
-		break;
+		execvp(e->argv[0], e->argv);
+		exit(-1);
 
 	case BACK: {
 		// runs a command in background
 		b = (struct backcmd *) cmd;
-		run_cmd(b->c->scmd);
-		exit(-1);
+		printf("Llego a ejecutar un comando BACK\n");
+
+		exec_cmd(b->c);
+		int pid = fork();
+		if (pid == 0) {
+			// hijo
+			exec_cmd(b->c);
+		}
+		perror("Error in background process\n");
+
+
+		break;
 	}
 
 	case REDIR: {
