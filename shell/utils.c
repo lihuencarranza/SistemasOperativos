@@ -74,6 +74,6 @@ save_cmd(char *cmd)
 		return
 
 		        fprintf(f, "%s\n", cmd);
-	//fprintf(stdout, "guardando este command: %s\n", cmd);
+	// fprintf(stdout, "guardando este command: %s\n", cmd);
 	fclose(f);
 }

@@ -74,13 +74,12 @@ open_redir_fd(char *file, int flags)
 {
 	// Your code here
 	int fd;
-	if (flags & O_CREAT){
+	if (flags & O_CREAT) {
 		fd = open(file, flags, S_IWUSR | S_IRUSR);
-	}
-	else{
+	} else {
 		fd = open(file, flags);
 	}
-	if (fd < 0){
+	if (fd < 0) {
 		perror("Error opening file");
 		exit(-1);
 	}
@@ -92,7 +91,7 @@ void
 redir_stdin(char *file)
 {
 	int fd = open_redir_fd(file, O_RDONLY);
-	int fd2 = dup2(fd, STDIN_FILENO); //Cambio el fd 0 para que apunte al nuevo
+	int fd2 = dup2(fd, STDIN_FILENO);  // Cambio el fd 0 para que apunte al nuevo
 	close(fd);
 }
 
@@ -100,8 +99,8 @@ redir_stdin(char *file)
 void
 redir_stdout(char *file)
 {
-	int fd = open_redir_fd(file, O_CREAT | O_WRONLY| O_TRUNC);
-	int fd2 = dup2(fd, STDOUT_FILENO); //Cambio el fd 1 para que apunte al nuevo
+	int fd = open_redir_fd(file, O_CREAT | O_WRONLY | O_TRUNC);
+	int fd2 = dup2(fd, STDOUT_FILENO);  // Cambio el fd 1 para que apunte al nuevo
 	close(fd);
 }
 
@@ -110,7 +109,7 @@ void
 redir_stderr(char *file)
 {
 	int fd = open_redir_fd(file, O_CREAT | O_WRONLY);
-	int fd2 = dup2(fd, STDERR_FILENO); //Cambio el fd 2 para que apunte al nuevo
+	int fd2 = dup2(fd, STDERR_FILENO);  // Cambio el fd 2 para que apunte al nuevo
 	close(fd);
 }
 
@@ -173,25 +172,23 @@ exec_cmd(struct cmd *cmd)
 		//
 		// Your code here
 		r = (struct execcmd *) cmd;
-	 	if(strlen(r->out_file) > 0){ //Caso redir output
+		if (strlen(r->out_file) > 0) {  // Caso redir output
 			redir_stdout(r->out_file);
 		}
-		if(strlen(r->in_file) > 0){ //Caso redir input
+		if (strlen(r->in_file) > 0) {  // Caso redir input
 			redir_stdin(r->in_file);
 		}
-		if(strlen(r->err_file) > 0){ //Caso redir error
-			if(strcmp(r->err_file, "&1")==0){ //Caso combinando
+		if (strlen(r->err_file) > 0) {  // Caso redir error
+			if (strcmp(r->err_file, "&1") == 0) {  // Caso combinando
 				redir_strerr_to_stdout();
-			}
-			else{
+			} else {
 				redir_stderr(r->err_file);
 			}
-			
 		}
 
-		r->type = EXEC; //Le cambio el type porque ya cambie el fd
+		r->type = EXEC;  // Le cambio el type porque ya cambie el fd
 		exec_cmd(r);
-		
+
 		printf("Redirections are not yet implemented\n");
 		_exit(-1);
 		break;
@@ -217,22 +214,22 @@ exec_cmd(struct cmd *cmd)
 			exit(-1);
 		}
 
-		if (pid_left == 0){
+		if (pid_left == 0) {
 			close(fd[READ]);
 			dup2(fd[WRITE], STDOUT_FILENO);
 			close(fd[WRITE]);
 			exec_cmd(p->leftcmd);
 		}
 
-		int pid_right= fork();
+		int pid_right = fork();
 		if (pid_right < 0) {
 			perror("Error in fork\n");
 			close(fd[READ]);
 			close(fd[WRITE]);
 			exit(-1);
 		}
-		
-		if (pid_right == 0){
+
+		if (pid_right == 0) {
 			close(fd[WRITE]);
 			dup2(fd[READ], STDIN_FILENO);
 			close(fd[READ]);
@@ -247,8 +244,8 @@ exec_cmd(struct cmd *cmd)
 
 		// free the memory allocated
 		// for the pipe tree structure
-		//free_command(parsed_pipe); //variable global
-		
+		// free_command(parsed_pipe); //variable global
+
 		break;
 	}
 	}

@@ -103,28 +103,27 @@ static char *
 expand_environ_var(char *arg)
 {
 	// Your code here
-	if (strcmp(arg, "$?") == 0){
-		sprintf(arg,"%i", status); 
+	if (strcmp(arg, "$?") == 0) {
+		sprintf(arg, "%i", status);
 		return arg;
 	}
 
 	if (arg[0] == '$') {
-		
-		char *env = getenv(arg+1);	
-		if (!env){
+		char *env = getenv(arg + 1);
+		if (!env) {
 			strcpy(arg, "");
 			return arg;
 		}
 
 		size_t env_len = strlen(env);
-		if (env_len == 0){
+		if (env_len == 0) {
 			strcpy(arg, "");
-		} else if (strlen(arg) < env_len){
+		} else if (strlen(arg) < env_len) {
 			arg = realloc(arg, 1 + sizeof(char) * env_len);
 			strcpy(arg, env);
 		}
 	}
-	
+
 	return arg;
 }
 
@@ -214,10 +213,10 @@ parse_line(char *buf)
 
 	l = parse_cmd(buf);
 
-	if (strchr(right, '|') != NULL) 
+	if (strchr(right, '|') != NULL)
 		r = parse_line(right);
-	else 
+	else
 		r = parse_cmd(right);
-	
+
 	return pipe_cmd_create(l, r);
 }
