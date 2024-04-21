@@ -214,8 +214,10 @@ parse_line(char *buf)
 
 	l = parse_cmd(buf);
 
-	if (strlen(right) != 0)
-		r = parse_line(right);  // si me dan mas de un pipe
-
+	if (strchr(right, '|') != NULL) 
+		r = parse_line(right);
+	else 
+		r = parse_cmd(right);
+	
 	return pipe_cmd_create(l, r);
 }
