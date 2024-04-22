@@ -28,18 +28,44 @@ En nuestra implementación, cuando se detecta que un comando se tiene que ejecut
 ---
 
 ## Flujo estándar
-En el primer caso, la salida de `cat out.txt` muestra primero el error y luego el resultado de lo que salió bien
+### Investigar el significado de 2>&1, explicar cómo funciona su forma general. Mostrar qué sucede con la salida de cat out.txt en el ejemplo. Luego repetirlo, invirtiendo el orden de las redirecciones (es decir, 2>&1 >out.txt). ¿Cambió algo? Compararlo con el comportamiento en bash(1).
 
-Al invertir las redirecciones, el resultado es el mismo. 
+La redirección 2>&1 en un shell Unix/Linux combina el flujo de errores estándar (stderr, descriptor de archivo 2) con el flujo de salida estándar (stdout, descriptor de archivo 1), de modo que ambos fluyen al mismo destino. En otras palabras, redirige el flujo de errores estándar hacia el mismo lugar que el flujo de salida estándar.
 
-En bash, el primer caso resulta igual que en nuestra implementación.
-Pero el segundo imprime primero el error y en out.txt queda solo el resultado del `ls`.
+Para entender cómo funciona, es útil conocer algunos conceptos básicos sobre los descriptores de archivo en Unix. Cada programa en Unix tiene tres descriptores de archivo abiertos por defecto:
 
-Acá vemos una diferencia entre nuestra implementación y lo que hace bash; bash presenta comportamiento diferentes para ambos casos pero la nuestra no, se comporta igual para diferente orden de redirección.
+- 0: stdin (entrada estándar)
+- 1: stdout (salida estándar)
+- 2: stderr (error estándar)
+
+Por lo tanto, cuando se ejecuta 2>&1, se está diciendo que el descriptor de archivo 2 (stderr) debe apuntar al mismo lugar que el descriptor de archivo 1 (stdout). Esto significa que ambos flujos de datos ahora van al mismo lugar.
+
+```
+$ ls -C /home /noexiste >out.txt 2>&1
+$ cat out.txt
+/home
+user
+ls: cannot access '/noexiste': No such file or directory
+```
+- `ls -C /home /noexiste` es el comando que se ejecuta.
+- `>out.txt` redirige la salida estándar al archivo `out.txt`.
+- `>2>&1` redirige el flujo de errores estándar al mismo lugar que la salida estándar, que es el archivo `out.txt`.
+
+Por lo tanto, si se observa el contenido de `out.txt`, debería contener la salida del comando `ls -C /home /noexiste`, incluido cualquier mensaje de error que genere.
+
+En segundo lugar, al invertir el orden de las redirecciones `(2>&1 >out.txt)`, el comportamiento cambia ligeramente:
+```
+$ ls -C /home /noexiste 2>&1 >out.txt
+```
+En este caso, primero se redirige el flujo de errores estándar `(2>&1)` hacia el mismo destino que la salida estándar (que en este caso sigue siendo la consola, ya que aún no se ha redirigido la salida estándar). Luego, se redirige la salida estándar `(>out.txt)` al archivo out.txt.
+
+Por lo tanto, en este caso, la salida estándar se envía al archivo out.txt, mientras que la salida de errores (incluidos los mensajes de error del comando `ls`) se envía a la consola, ya que se redirigió antes de la salida estándar.
+
 
 ---
 
 ## Tuberías múltiples
+### Investigar qué ocurre con el exit code reportado por la shell si se ejecuta un pipe ¿Cambia en algo? ¿Qué ocurre si, en un pipe, alguno de los comandos falla? Mostrar evidencia (e.g. salidas de terminal) de este comportamiento usando bash. Comparar con su implementación.
 En nuestra implementación no aparece un exit code en azul como en un comando normal. Directamente devuelve el prompt sin exit code para cualquier pipe, ya sea simple o múltiple.
 
 ---
@@ -119,7 +145,14 @@ La razón principal para implementar comandos como `cd` y `pwd` como built-ins e
 
 ---
 
-### Historial
+## Segundo plano avanzado
+### ¿Por qué es necesario el uso de señales?
+
+Es necesario para manejar los procesos en segundo plano de manera eficiente y notificar su finalización inmediatamente. En este trabajo, utilizamos la senal `SIGCHLD` que se genera cuando un proceso hijo termina, ya sea normalmente o debido a un error. Utilizando la función `sigaction(2)` podemos configurar un manejador de señales, también conocido como handler, para la señal `SIGCHLD`.
+
+El mecanismo completo utilizado implica configurar el handler de `SIGCHLD` para que, cuando se reciba esta señal, se ejecute una función que liberará los recursos del proceso hijo finalizado y notificará al usuario de la shell sobre la finalización del proceso en segundo plano. Además, para evitar conflictos con los procesos en primer plano, es necesario asegurarse de que todos los procesos en segundo plano estén en el mismo grupo de procesos y utilizar un valor numérico específico en la llamada a `waitpid(2)` en el handler para restringir la espera solo a los procesos en segundo plano.
+
+El uso de señales es necesario en este caso porque permite a la shell recibir notificaciones asincrónicas sobre eventos importantes, como la finalización de un proceso hijo. Sin señales, la shell tendría que estar constantemente verificando manualmente si algún proceso hijo ha finalizado, lo cual sería ineficiente y consumiría recursos innecesarios. Con señales, la shell puede continuar ejecutando otras tareas y ser notificada de inmediato cuando un proceso hijo haya terminado, permitiendo un manejo más eficiente de los procesos en segundo plano.
 
 ---
 
