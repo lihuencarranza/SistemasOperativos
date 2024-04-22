@@ -107,7 +107,15 @@ $ 1234
 
 ---
 
-### Comandos built-in
+## Comandos built-in
+### ¿Entre `cd` y `pwd`, alguno de los dos se podría implementar sin necesidad de ser built-in? ¿Por qué? ¿Si la respuesta es sí, cuál es el motivo, entonces, de hacerlo como built-in? (para esta última pregunta pensar en los built-in como true y false)
+
+En el caso de `cd`, no necesariamente necesita ser un built-in, ya que la función `chdir()` de la biblioteca estándar de C permite cambiar el directorio de trabajo de un proceso. Sin embargo, si `cd` no fuera un built-in, cambiaría el directorio de trabajo solo para el proceso hijo que lo ejecuta, no para el proceso shell principal. Por lo tanto, para que `cd` tenga el efecto deseado de cambiar el directorio de trabajo del proceso shell, necesita ser un built-in.
+
+En cambio, `pwd` es un caso diferente. `pwd` simplemente imprime el directorio de trabajo actual del proceso, que puede obtenerse utilizando la función `getcwd()` de la biblioteca estándar de C. Dado que no modifica el entorno o el estado del proceso shell, `pwd` no necesita ser un built-in. De hecho, muchos shells implementan `pwd` como un comando externo en lugar de un built-in.
+
+La razón principal para implementar comandos como `cd` y `pwd` como built-ins es la conveniencia y eficiencia. Al ser built-ins, estos comandos se ejecutan en el mismo proceso que la shell, lo que les permite modificar directamente el entorno y el estado de la shell, en lugar de tener que crear un proceso hijo separado para ejecutar un comando externo. Esto mejora la eficiencia y evita posibles problemas con la sincronización de los procesos.
+
 
 ---
 
