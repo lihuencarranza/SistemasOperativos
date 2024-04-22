@@ -31,7 +31,6 @@ run_cmd(char *cmd)
 	if (pwd(cmd))
 		return 0;
 
-	save_cmd(cmd);
 	// parses the command line
 	parsed = parse_line(cmd);
 
