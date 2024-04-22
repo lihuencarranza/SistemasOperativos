@@ -29,13 +29,24 @@ int
 cd(char *cmd)
 {
 	// Your code here
-	if (strcmp(cmd, "cd") == 0) {
-		chdir(getenv("HOME"));
-		strcpy(prompt, getenv("HOME"));
+	if (cmd[0] == 'c' && cmd[1] == 'd') {
+		strtok(cmd, " ");
+
+		char *dir = strtok(NULL, " ");
+		if (dir == NULL) {
+			char *home = getenv("HOME");
+			if (chdir(home) < 0) {
+				perror("Error in directory HOME\n");
+				return 1;
+			}
+		} else {
+			if (chdir(dir) < 0) {
+				perror("Error in directory\n");
+				return 1;
+			}
+		}
 		return 1;
 	}
-			
-
 	return 0;
 }
 
