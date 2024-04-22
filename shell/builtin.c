@@ -29,29 +29,13 @@ int
 cd(char *cmd)
 {
 	// Your code here
-	if (cmd[0] == 'c' && cmd[1] == 'd') {
-		char *path_home = getenv("HOME");
-		if (strlen(cmd) > 2) {
-			char path[10];
-			int i = 3;
-			for (i = 3; i < (int) strlen(cmd); i++) {
-				path[i - 3] = cmd[i];
-			}
-			path[i - 3] = '\0';
-			if (chdir(path) == -1) {
-				perror("error en el redireccionamiento");
-				exit(-1);
-			}
-			strcpy(prompt, get_current_dir_name());
-			return 1;
-		}
-		if (chdir(path_home) == -1) {
-			perror("error en el redireccionamiento");
-			exit(-1);
-		}
-		strcpy(prompt, get_current_dir_name());
+	if (strcmp(cmd, "cd") == 0) {
+		chdir(getenv("HOME"));
+		strcpy(prompt, getenv("HOME"));
 		return 1;
 	}
+			
+
 	return 0;
 }
 
