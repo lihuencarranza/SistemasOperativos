@@ -28,7 +28,6 @@ exit_shell(char *cmd)
 int
 cd(char *cmd)
 {
-	// Your code here
 	if (cmd[0] == 'c' && cmd[1] == 'd') {
 		strtok(cmd, " ");
 
@@ -58,7 +57,6 @@ cd(char *cmd)
 int
 pwd(char *cmd)
 {
-	// Your code here
 	if (!strcmp(cmd, "pwd")) {
 		char *path = getcwd(NULL, 100);
 		if (path == NULL) {

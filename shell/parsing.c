@@ -102,7 +102,6 @@ parse_environ_var(struct execcmd *c, char *arg)
 static char *
 expand_environ_var(char *arg)
 {
-	// Your code here
 	if (strcmp(arg, "$?") == 0) {
 		sprintf(arg, "%i", status);
 		return arg;

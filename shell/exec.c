@@ -55,8 +55,6 @@ set_environ_vars(char **eargv, int eargc)
 		get_environ_value(eargv[i], value, block_contains(eargv[i], '='));
 		setenv(key, value, 1);
 	}
-	// printf("Key: %s\n", eargv[0]);
-	// printf("Value: %s\n", eargv[1]);
 }
 
 // opens the file in which the stdin/stdout/stderr
@@ -137,8 +135,6 @@ exec_cmd(struct cmd *cmd)
 	switch (cmd->type) {
 	case EXEC:
 		// spawns a command
-		//
-		// Your code here
 		e = (struct execcmd *) cmd;
 		if (strstr(e->scmd, "env") != NULL) {
 			set_environ_vars(e->eargv, e->eargc);
@@ -149,18 +145,8 @@ exec_cmd(struct cmd *cmd)
 	case BACK: {
 		// runs a command in background
 		b = (struct backcmd *) cmd;
-		printf("Llego a ejecutar un comando BACK\n");
-
-		exec_cmd(b->c);
-		int pid = fork();
-		if (pid == 0) {
-			// hijo
-			exec_cmd(b->c);
-		}
-		perror("Error in background process\n");
-
-
-		break;
+		run_cmd(b->c->scmd);
+		exit(-1);
 	}
 
 	case REDIR: {
@@ -196,8 +182,7 @@ exec_cmd(struct cmd *cmd)
 
 	case PIPE: {
 		// pipes two commands
-		//
-		// Your code here
+
 		p = (struct pipecmd *) cmd;
 		int fd[2];
 
