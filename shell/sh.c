@@ -30,7 +30,7 @@ sigchld_handler()
 }
 
 // sets the signal handlers
-static void 
+static void
 set_signal_handlers()
 {
 	// register signal
