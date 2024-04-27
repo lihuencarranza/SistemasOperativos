@@ -3,7 +3,6 @@
 #include "readline.h"
 #include "runcmd.h"
 
-void sigchld_handler();
 
 char prompt[PRMTLEN] = { 0 };
 
@@ -18,23 +17,28 @@ run_shell()
 			return;
 }
 
-void
+static void
 sigchld_handler()
 {
 	pid_t pid;
 	int status;
-	
+
+	char buf[BUFLEN] = { 0 };
 	while ((pid = waitpid(0, &status, WNOHANG)) > 0) {
-		print_status_info(parsed_pipe);
+		snprintf(buf, sizeof buf, "%s ===> terminado: PID=%d", COLOR_BLUE, pid);
 	}
 }
 
 // sets the signal handlers
 static void 
-set_signal_handlers(){
+set_signal_handlers()
+{
 	// register signal
-	struct sigaction sa = { .sa_handler = sigchld_handler,
-		                .sa_flags = SA_RESTART };
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(struct sigaction));
+
+	sa.sa_handler = sigchld_handler;
+	sa.sa_flags = SA_RESTART;
 
 	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
 		perror("sigaction");
