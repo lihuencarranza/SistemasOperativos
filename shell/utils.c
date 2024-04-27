@@ -63,17 +63,3 @@ fprintf_debug(FILE *file, char *format, ...)
 	return 0;
 #endif
 }
-
-// guarda el commando para history.
-void
-save_cmd(char *cmd)
-{
-	FILE *f;
-	f = fopen(".sh_history", "a");
-	if (!f)
-		return
-
-		        fprintf(f, "%s\n", cmd);
-	// fprintf(stdout, "guardando este command: %s\n", cmd);
-	fclose(f);
-}
