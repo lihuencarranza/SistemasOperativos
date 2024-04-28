@@ -149,7 +149,9 @@ La razón principal para implementar comandos como `cd` y `pwd` como built-ins e
 ### Mecanismo utilizado
 
 Se utiliza el mecanismo de señales para manejar la terminación de procesos en segundo plano de manera inmediata. Esto se logra mediante la captura y el manejo de la señal `SIGCHLD`, que se genera cuando un proceso hijo termina.
-Cuando un proceso hijo finaliza, se genera la señal `SIGCHLD`, lo que desencadena la ejecución de un manejador de señales específico (`sigchld_handler()` en este caso). En este manejador, se utiliza `waitpid()` con la bandera `WNOHANG` para revisar si algún proceso hijo ha terminado sin bloquear la ejecución de la shell. Si se detecta que un proceso hijo ha finalizado, se muestra un mensaje declarando el proceso como terminado.
+Cuando un proceso hijo finaliza, se genera la señal `SIGCHLD`, lo que desencadena la ejecución de un manejador de señales específico (`sigchld_handler()` en este caso). 
+
+El manejo de la señal `SIGCHLD` en la shell implica llamar a `waitpid()` con la bandera WNOHANG. Esto permite a la shell verificar si algún proceso hijo ha terminado sin bloquear la ejecución. Si `waitpid()` devuelve un PID de un proceso hijo que ha terminado, la shell puede realizar acciones como mostrar un mensaje al usuario o actualizar su estado interno para reflejar la finalización del proceso.
 
 Para registrar y configurar el manejador de señales `sigchld_handler()`, se utiliza la función `set_signal_handlers()`. En esta función, se emplea `sigaction()` para asociar el manejador de señales con la señal `SIGCHLD`. Además, se especifica el uso de `SA_RESTART`, lo que garantiza que ciertas llamadas al sistema se reinicien automáticamente si se interrumpen debido a la señal.
 
