@@ -25,7 +25,11 @@ sigchld_handler()
 
 	char buf[BUFLEN] = { 0 };
 	while ((pid = waitpid(0, &status, WNOHANG)) > 0) {
-		snprintf(buf, sizeof buf, "%s ===> terminado: PID=%d", COLOR_BLUE, pid);
+		snprintf(buf,
+		         sizeof buf,
+		         "%s ===> terminado: PID=%d\n",
+		         COLOR_BLUE,
+		         pid);
 	}
 }
 
