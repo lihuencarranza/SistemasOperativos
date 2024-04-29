@@ -85,7 +85,7 @@ open_redir_fd(char *file, int flags)
 }
 
 // private function to encapsule the redirection of stdin
-void
+static void
 redir_stdin(char *file)
 {
 	int fd = open_redir_fd(file, O_RDONLY);
@@ -94,7 +94,7 @@ redir_stdin(char *file)
 }
 
 // private function to encapsule the redirection of stdout
-void
+static void
 redir_stdout(char *file)
 {
 	int fd = open_redir_fd(file, O_CREAT | O_WRONLY | O_TRUNC);
@@ -103,7 +103,7 @@ redir_stdout(char *file)
 }
 
 // private function to encapsule the redirection of stderr
-void
+static void
 redir_stderr(char *file)
 {
 	int fd = open_redir_fd(file, O_CREAT | O_WRONLY);
@@ -111,7 +111,7 @@ redir_stderr(char *file)
 	close(fd);
 }
 
-void
+static void
 redir_strerr_to_stdout()
 {
 	dup2(STDOUT_FILENO, STDERR_FILENO);
