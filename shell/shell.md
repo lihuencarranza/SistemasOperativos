@@ -146,6 +146,17 @@ La razón principal para implementar comandos como `cd` y `pwd` como built-ins e
 ---
 
 ## Segundo plano avanzado
+### Mecanismo utilizado
+
+Se utiliza el mecanismo de señales para manejar la terminación de procesos en segundo plano de manera inmediata. Esto se logra mediante la captura y el manejo de la señal `SIGCHLD`, que se genera cuando un proceso hijo termina.
+Cuando un proceso hijo finaliza, se genera la señal `SIGCHLD`, lo que desencadena la ejecución de un manejador de señales específico (`sigchld_handler()` en este caso). 
+
+El manejo de la señal `SIGCHLD` en la shell implica llamar a `waitpid()` con la bandera WNOHANG. Esto permite a la shell verificar si algún proceso hijo ha terminado sin bloquear la ejecución. Si `waitpid()` devuelve un PID de un proceso hijo que ha terminado, la shell puede realizar acciones como mostrar un mensaje al usuario o actualizar su estado interno para reflejar la finalización del proceso.
+
+Para registrar y configurar el manejador de señales `sigchld_handler()`, se utiliza la función `set_signal_handlers()`. En esta función, se emplea `sigaction()` para asociar el manejador de señales con la señal `SIGCHLD`. Además, se especifica el uso de `SA_RESTART`, lo que garantiza que ciertas llamadas al sistema se reinicien automáticamente si se interrumpen debido a la señal.
+
+La inicialización de la shell (`init_shell()`) incluye la llamada a `set_signal_handlers()`, lo que asegura que los manejadores de señales estén configurados y listos para manejar señales tan pronto como la shell comience a ejecutarse. Esto garantiza un manejo eficiente de la terminación de procesos en segundo plano, mejorando la capacidad de respuesta de la shell y la experiencia del usuario al interactuar con procesos en segundo plano.
+
 ### ¿Por qué es necesario el uso de señales?
 
 Es necesario para manejar los procesos en segundo plano de manera eficiente y notificar su finalización inmediatamente. En este trabajo, utilizamos la senal `SIGCHLD` que se genera cuando un proceso hijo termina, ya sea normalmente o debido a un error. Utilizando la función `sigaction(2)` podemos configurar un manejador de señales, también conocido como handler, para la señal `SIGCHLD`.
