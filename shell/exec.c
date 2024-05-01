@@ -89,7 +89,7 @@ static void
 redir_stdin(char *file)
 {
 	int fd = open_redir_fd(file, O_RDONLY);
-	int fd2 = dup2(fd, STDIN_FILENO);  // Cambio el fd 0 para que apunte al nuevo
+	dup2(fd, STDIN_FILENO);  // Cambio el fd 0 para que apunte al nuevo
 	close(fd);
 }
 
@@ -98,7 +98,7 @@ static void
 redir_stdout(char *file)
 {
 	int fd = open_redir_fd(file, O_CREAT | O_WRONLY | O_TRUNC);
-	int fd2 = dup2(fd, STDOUT_FILENO);  // Cambio el fd 1 para que apunte al nuevo
+	dup2(fd, STDOUT_FILENO);  // Cambio el fd 1 para que apunte al nuevo
 	close(fd);
 }
 
@@ -107,7 +107,7 @@ static void
 redir_stderr(char *file)
 {
 	int fd = open_redir_fd(file, O_CREAT | O_WRONLY);
-	int fd2 = dup2(fd, STDERR_FILENO);  // Cambio el fd 2 para que apunte al nuevo
+	dup2(fd, STDERR_FILENO);  // Cambio el fd 2 para que apunte al nuevo
 	close(fd);
 }
 
@@ -173,7 +173,7 @@ exec_cmd(struct cmd *cmd)
 		}
 
 		r->type = EXEC;  // Le cambio el type porque ya cambie el fd
-		exec_cmd(r);
+		exec_cmd((struct cmd *) r);
 
 		printf("Redirections are not yet implemented\n");
 		_exit(-1);
