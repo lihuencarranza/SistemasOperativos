@@ -145,7 +145,7 @@ exec_cmd(struct cmd *cmd)
 	case BACK: {
 		// runs a command in background
 		b = (struct backcmd *) cmd;
-		exec_cmd(b->c);
+		run_cmd(b->c->scmd);
 		exit(-1);
 	}
 
