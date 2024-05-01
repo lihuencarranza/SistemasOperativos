@@ -23,14 +23,16 @@ sigchld_handler()
 	pid_t pid;
 	int status;
 
-	char buf[BUFLEN] = { 0 };
 	while ((pid = waitpid(0, &status, WNOHANG)) > 0) {
-		snprintf(buf,
-		         sizeof buf,
-		         "%s ===> terminado: PID=%d\n",
-		         COLOR_BLUE,
-		         pid);
+		printf("%s", COLOR_BLUE);
+		printf_debug("terminado: PID=%d\n", pid);
+		printf("%s", COLOR_RED);
+		char *home = getenv("HOME");
+		printf_debug("(%s)\n", home);
+		printf("%s", COLOR_RESET);
 	}
+	printf("%s", COLOR_RESET);
+	printf_debug("$ ", pid);
 }
 
 // sets the signal handlers
