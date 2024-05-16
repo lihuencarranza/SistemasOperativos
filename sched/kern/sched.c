@@ -8,6 +8,25 @@
 void sched_halt(void);
 
 // Choose a user environment to run and run it.
+struct Env* look_for_next_env(struct Env* current_env) {
+	cprintf("%d\n", current_env);
+	size_t next_id;
+	if (current_env == NULL) {
+		next_id = 0;
+	}	
+	next_id = current_env->env_id + 1;
+	cprintf("pre next_env\n");
+	if (next_id >= NENV) {
+		return NULL;
+	}	
+	struct Env *next_env = &envs[next_id];
+	cprintf("pre next_env\n");
+	if (next_env->env_status == ENV_RUNNABLE) {
+		return next_env;
+	}
+	return look_for_next_env(next_env);
+}
+
 void
 sched_yield(void)
 {
@@ -17,10 +36,22 @@ sched_yield(void)
 	// Search through 'envs' for an ENV_RUNNABLE environment in
 	// circular fashion starting just after the env this CPU was
 	// last running. Switch to the first such environment found.
-	//
+	
+	cprintf("pre recur\n");
+	cprintf("%d\n", curenv);
+	struct Env *next_env = look_for_next_env(curenv);
+	cprintf("post recur %d\n", next_env);
+	
 	// If no envs are runnable, but the environment previously
 	// running on this CPU is still ENV_RUNNING, it's okay to
 	// choose that environment.
+	if (next_env == NULL){
+		if (curenv && curenv->env_status == ENV_RUNNING){
+			env_run(curenv);
+		}
+	}else{
+		env_run(next_env);
+	}
 	//
 	// Never choose an environment that's currently running on
 	// another CPU (env_status == ENV_RUNNING). If there are
@@ -43,11 +74,12 @@ sched_yield(void)
 #endif
 
 	// Without scheduler, keep runing the last environment while it exists
-	if (curenv) {
-		env_run(curenv);
-	}
+	// if (curenv) {
+	// 	env_run(curenv);
+	// }
 
 	// sched_halt never returns
+	cprintf("===HALTEO===");
 	sched_halt();
 }
 
