@@ -54,9 +54,6 @@ sched_yield(void)
 	           curenv->env_cpunum == cpunum()) {
 		env_run(curenv);
 	}
-	
-	
-
 #endif
 
 #ifdef SCHED_PRIORITIES
