@@ -38,7 +38,10 @@ enum EnvType {
 };
 
 //Priority constants
-#define MAX_PRIORITY_LEVEL 5
+#ifdef SCHED_PRIORITIES
+	#define MIN_PRIORITY_LEVEL 0
+	#define MAX_PRIORITY_LEVEL 5
+#endif
 
 struct Env {
 	struct Trapframe env_tf;  // Saved registers
