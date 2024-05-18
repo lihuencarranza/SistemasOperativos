@@ -10,6 +10,7 @@ void sched_halt(void);
 void
 sched_yield(void)
 {
+	struct Env *idle = NULL;
 #ifdef SCHED_ROUND_ROBIN
 	// Implement simple round-robin scheduling.
 	//
@@ -26,7 +27,6 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// Your code here - Round robin
-	struct Env *idle = NULL;
 	if (!curenv) {
 		int i = 0;
 		while (i < NENV && envs[i].env_status != ENV_RUNNABLE) {
