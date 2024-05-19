@@ -1,11 +1,28 @@
 # Scheduler
 
 ##  Context Switch
+*previo a context_switch*
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/102101194/aa6972b3-a3cd-44a0-9f9d-ae5a26ad38b6)
 
-- el cambio de contexto
-- el estado del stack al inicio de la llamada de context_switch
-- cómo cambia el stack instrucción a instrucción
-- cómo se modifican los registros luego de ejecutar iret
+*luego de llamar a context_switch*
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/102101194/81857834-6a6d-4158-aa59-1ce9b4b598f1)
+
+*como el primer valor es la dirección de retorno, la salteamos con +4*
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/102101194/a624a9a6-8f62-4174-8494-ab588fbc1d0b)
+
+*luego de hacer que el stack apunte a donde debería, hacemos popal y el stack queda:*
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/102101194/497b2706-e590-4e0b-9cf5-733a3f7a00ec)
+
+*luego popeamos %es y %ds y el stack:*
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/102101194/554e769a-cfee-47ab-82d5-d78126ecd624)
+
+*saltemos los próximos 2 valores porque no nos interesa guardarlos:*
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/102101194/3799a504-7ba7-4908-8d77-cd2cea032cb8)
+
+*llamamos a iret y los registros quedan:*
+
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/102101194/c1a112e9-3aeb-4f39-a9b7-75915c49e65d)
+
 
 ## Scheduler con prioridades
 ### Lógica de Prioridades
