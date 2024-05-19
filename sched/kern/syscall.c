@@ -429,8 +429,8 @@ sys_ipc_recv(void *dstva)
 	return 0;
 }
 
-static unsigned int
-sys_check_priority(unsigned int priority)
+static int
+sys_get_priority()
 {
 #ifdef SCHED_PRIORITIES
 	return curenv->env_priority;
@@ -438,23 +438,25 @@ sys_check_priority(unsigned int priority)
 	return 0;
 }
 
-static unsigned int
-sys_set_priority(unsigned int priority)
+static int
+sys_set_priority(int priority)
 {
 #ifdef SCHED_PRIORITIES
 	if (priority > curenv->env_priority)
-		return -E_INVAL;
+		return curenv->env_priority;
 	curenv->env_priority = priority;
+	return priority;
 #endif
 	return 0;
 }
 
-sys_reduce_priority(unsigned int priority)
+static int
+sys_reduce_priority(int priority)
 {
 #ifdef SCHED_PRIORITIES
-	if (priority >= curenv->env_priority)
-		return -E_INVAL;
-	curenv->env_priority -= priority;
+	if (priority < curenv->env_priority)
+		curenv->env_priority == priority;
+	return curenv->env_priority;
 #endif
 	return 0;  // No priorities, no error
 }
@@ -492,11 +494,11 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_ipc_try_send(a1, a2, (void *) a3, a4);
 	case SYS_env_set_pgfault_upcall:
 		return sys_env_set_pgfault_upcall(a1, (void *) a2);
-	case SYS_check_priority:
-		return sys_check_priority(a1);
+	case SYS_get_priority:
+		return sys_get_priority();
 	case SYS_set_priority:
 		return sys_set_priority(a1);
-	case SYS_reduce_priority(a1):
+	case SYS_reduce_priority:
 		return sys_reduce_priority(a1);
 	case SYS_yield:
 		sys_yield();  // No return
