@@ -83,7 +83,7 @@ serial_init(void)
 
 	// Set speed; requires DLAB latch
 	outb(COM1 + COM_LCR, COM_LCR_DLAB);
-	outb(COM1 + COM_DLL, (uint8_t)(115200 / 9600));
+	outb(COM1 + COM_DLL, (uint8_t) (115200 / 9600));
 	outb(COM1 + COM_DLM, 0);
 
 	// 8 data bits, 1 stop bit, parity off; turn off DLAB latch
@@ -223,9 +223,9 @@ cga_putc(int c)
 static uint8_t shiftcode[256] = { [0x1D] = CTL, [0x2A] = SHIFT, [0x36] = SHIFT,
 	                          [0x38] = ALT, [0x9D] = CTL,   [0xB8] = ALT };
 
-static uint8_t togglecode[256] = { [0x3A] = CAPSLOCK,
-	                           [0x45] = NUMLOCK,
-	                           [0x46] = SCROLLLOCK };
+static uint8_t togglecode[256] = {
+	[0x3A] = CAPSLOCK, [0x45] = NUMLOCK, [0x46] = SCROLLLOCK
+};
 
 static uint8_t normalmap[256] = { NO,
 	                          0x1B,

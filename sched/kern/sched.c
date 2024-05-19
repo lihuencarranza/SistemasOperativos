@@ -10,71 +10,80 @@ void sched_halt(void);
 unsigned times_scheduler_called = 0;
 
 #ifdef SCHED_PRIORITIES
-void reduce_priority(struct Env *env) {
-    if (env->env_priority > MIN_PRIORITY_LEVEL) {
-        env->env_priority--;
-    }
+void
+reduce_priority(struct Env *env)
+{
+	if (env->env_priority > MIN_PRIORITY_LEVEL) {
+		env->env_priority--;
+	}
 }
 
 
-void boost_priority() {
-    for (int i = 0; i < NENV; i++) {
-        if (envs[i].env_status == ENV_RUNNABLE) {
-            envs[i].env_priority = MAX_PRIORITY_LEVEL;
-        }
-    }
+void
+boost_priority()
+{
+	for (int i = 0; i < NENV; i++) {
+		if (envs[i].env_status == ENV_RUNNABLE) {
+			envs[i].env_priority = MAX_PRIORITY_LEVEL;
+		}
+	}
 }
 
-struct Env *sched_priorities(void) {
-    struct Env *highest_priority = NULL;
+struct Env *
+sched_priorities(void)
+{
+	struct Env *highest_priority = NULL;
 
-    if (times_scheduler_called % 30 == 0)
-        boost_priority();
+	if (times_scheduler_called % 30 == 0)
+		boost_priority();
 
-    // Find the highest priority environment
-    for (int i = 0; i < NENV; i++) {
-        if (envs[i].env_status == ENV_RUNNABLE) {
-            if (highest_priority == NULL || envs[i].env_priority > highest_priority->env_priority) {
-                highest_priority = &envs[i];
-            }
-        }
-    }
+	// Find the highest priority environment
+	for (int i = 0; i < NENV; i++) {
+		if (envs[i].env_status == ENV_RUNNABLE) {
+			if (highest_priority == NULL ||
+			    envs[i].env_priority > highest_priority->env_priority) {
+				highest_priority = &envs[i];
+			}
+		}
+	}
 
-    if (highest_priority && highest_priority->env_runs != 0) {
-        reduce_priority(highest_priority);
-    }
+	if (highest_priority && highest_priority->env_runs != 0) {
+		reduce_priority(highest_priority);
+	}
 
-    return highest_priority;
+	return highest_priority;
 }
 #endif
 
 #ifdef SCHED_ROUND_ROBIN
-struct Env *sched_round_robin(void) {
-    struct Env *idle = NULL;
+struct Env *
+sched_round_robin(void)
+{
+	struct Env *idle = NULL;
 
-    if (!curenv) {
-        int i = 0;
-        while (i < NENV && envs[i].env_status != ENV_RUNNABLE) {
-            i++;
-        }
-        if (envs[i].env_status == ENV_RUNNABLE)
-            idle = &envs[i];
-    } else {
-        int i = ENVX(curenv->env_id) + 1;
-        while (curenv != &envs[i]) {
-            if (i >= NENV) {
-                i = 0;
-            } else {
-                if (envs[i].env_status == ENV_RUNNABLE) {
-                    idle = &envs[i];
-                    break;
-                }
-                i++;
-            }
-        }
-    }
+	if (!curenv) {
+		int i = 0;
+		while (i < NENV && envs[i].env_status != ENV_RUNNABLE) {
+			i++;
+		}
+		if (envs[i].env_status == ENV_RUNNABLE)
+			idle = &envs[i];
+	} else {
+		int i = ENVX(curenv->env_id) + 1;
+		while (curenv != &envs[i]) {
+			if (i >= NENV) {
+				i = 0;
+			} else {
+				if (envs[i].env_status == ENV_RUNNABLE) {
+					idle = &envs[i];
+					break;
+				}
+				i++;
+			}
+		}
+	}
 
-    return idle;
+	return idle;
 }
 #endif
 
@@ -84,7 +93,7 @@ sched_yield(void)
 {
 	struct Env *idle = NULL;
 	times_scheduler_called++;
-	
+
 #ifdef SCHED_ROUND_ROBIN
 	// Implement simple round-robin scheduling.
 	//
@@ -121,10 +130,11 @@ sched_yield(void)
 
 	// Without scheduler, keep runing the last environment while it exists
 	if (idle) {
-        env_run(idle);
-    } else if (curenv && curenv->env_status == ENV_RUNNING && curenv->env_cpunum == cpunum()) {
-        env_run(curenv);
-    }
+		env_run(idle);
+	} else if (curenv && curenv->env_status == ENV_RUNNING &&
+	           curenv->env_cpunum == cpunum()) {
+		env_run(curenv);
+	}
 
 	// sched_halt never returns
 	sched_halt();

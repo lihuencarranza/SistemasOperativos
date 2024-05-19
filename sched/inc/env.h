@@ -37,10 +37,10 @@ enum EnvType {
 	ENV_TYPE_USER = 0,
 };
 
-//Priority constants
+// Priority constants
 #ifdef SCHED_PRIORITIES
-	#define MIN_PRIORITY_LEVEL 0
-	#define MAX_PRIORITY_LEVEL 5
+#define MIN_PRIORITY_LEVEL 0
+#define MAX_PRIORITY_LEVEL 5
 #endif
 
 struct Env {
@@ -52,7 +52,7 @@ struct Env {
 	unsigned env_status;      // Status of the environment
 	uint32_t env_runs;        // Number of times environment has run
 	int env_cpunum;           // The CPU that the env is running on
-	unsigned env_priority;    // Priority of the environment (used in MLFQ scheduling)
+	unsigned env_priority;  // Priority of the environment (used in MLFQ scheduling)
 
 	// Address space
 	pde_t *env_pgdir;  // Kernel virtual address of page dir
