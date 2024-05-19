@@ -7,7 +7,8 @@
 
 void sched_halt(void);
 
-unsigned times_scheduler_called = 0;
+// inicializar typedef struct stats
+struct Stats stats = { 0 };
 
 #ifdef SCHED_PRIORITIES
 void
@@ -22,9 +23,11 @@ reduce_priority(struct Env *env)
 void
 boost_priority()
 {
+	stats.total_boosts++;
 	for (int i = 0; i < NENV; i++) {
 		if (envs[i].env_status == ENV_RUNNABLE) {
 			envs[i].env_priority = MAX_PRIORITY_LEVEL;
+			envs[i].env_boosts++;
 		}
 	}
 }
@@ -34,7 +37,7 @@ sched_priorities(void)
 {
 	struct Env *highest_priority = NULL;
 
-	if (times_scheduler_called % 30 == 0)
+	if (stats.sched_calls % 30 == 0)
 		boost_priority();
 
 	// Find the highest priority environment
@@ -92,7 +95,7 @@ void
 sched_yield(void)
 {
 	struct Env *idle = NULL;
-	times_scheduler_called++;
+	stats.sched_calls++;
 
 #ifdef SCHED_ROUND_ROBIN
 	// Implement simple round-robin scheduling.
@@ -130,6 +133,9 @@ sched_yield(void)
 
 	// Without scheduler, keep runing the last environment while it exists
 	if (idle) {
+		stats.pid_history[stats.history_index % MAX_HISTORY] =
+		        idle->env_id;
+		stats.history_index++;
 		env_run(idle);
 	} else if (curenv && curenv->env_status == ENV_RUNNING &&
 	           curenv->env_cpunum == cpunum()) {
@@ -138,6 +144,45 @@ sched_yield(void)
 
 	// sched_halt never returns
 	sched_halt();
+}
+
+void
+print_stats(void)
+{
+	cprintf("\n=== SCHEDULER STATS ===\n");
+
+	cprintf("Times scheduler called: %d\n", stats.sched_calls);
+	cprintf("Total of processes: %d\n", NENV);
+
+	cprintf("\n=== PID STATS ===\n");
+	int not_run = 0;
+	int runned = 0;
+	for (int i = 0; i < NENV; i++) {
+		if (envs[i].env_runs > 0) {
+			cprintf("Process %d executed %d times\n",
+			        i,
+			        envs[i].env_runs);
+			runned++;
+		} else {
+			not_run++;
+		}
+	}
+	cprintf("Processes executed: %d\n", runned);
+	cprintf("Processes not executed: %d\n", not_run);
+
+#ifdef SCHED_PRIORITIES
+	cprintf("\n=== BOOSTS STATS ===\n");
+	cprintf("Total boosts %d\n", stats.total_boosts);
+	cprintf("\n");
+	for (int i = 0; i < NENV; i++) {
+		if (envs[i].env_boosts > 0)
+			cprintf("Process %d has %d boosts\n",
+			        envs[i].env_parent_id,
+			        envs[i].env_boosts);
+	}
+#endif
+
+	cprintf("\n=== ENV STATS ===\n");
 }
 
 // Halt this CPU when there is nothing to do. Wait until the
@@ -158,6 +203,9 @@ sched_halt(void)
 	}
 	if (i == NENV) {
 		cprintf("No runnable environments in the system!\n");
+
+		print_stats();
+
 		while (1)
 			monitor(NULL);
 	}

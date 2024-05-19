@@ -52,7 +52,9 @@ struct Env {
 	unsigned env_status;      // Status of the environment
 	uint32_t env_runs;        // Number of times environment has run
 	int env_cpunum;           // The CPU that the env is running on
+
 	unsigned env_priority;  // Priority of the environment (used in MLFQ scheduling)
+	int env_boosts;  // Number of times the environment has been boosted
 
 	// Address space
 	pde_t *env_pgdir;  // Kernel virtual address of page dir
@@ -67,5 +69,16 @@ struct Env {
 	envid_t env_ipc_from;    // envid of the sender
 	int env_ipc_perm;        // Perm of page mapping received
 };
+
+#define MAX_HISTORY 100
+
+typedef struct Stats {
+	unsigned sched_calls;
+#ifdef SCHED_PRIORITIES
+	unsigned total_boosts;
+#endif
+	int pid_history[MAX_HISTORY];
+	int history_index;
+} stats_t;
 
 #endif  // !JOS_INC_ENV_H
