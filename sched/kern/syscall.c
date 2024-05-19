@@ -496,6 +496,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_check_priority(a1);
 	case SYS_set_priority:
 		return sys_set_priority(a1);
+	case SYS_reduce_priority(a1):
+		return sys_reduce_priority(a1);
 	case SYS_yield:
 		sys_yield();  // No return
 	default:

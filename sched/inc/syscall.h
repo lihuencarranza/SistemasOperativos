@@ -18,6 +18,7 @@ enum {
 	SYS_ipc_recv,
 	SYS_check_priority,
 	SYS_set_priority,
+	SYS_reduce_priority,
 	NSYSCALLS
 };
 
