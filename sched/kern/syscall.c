@@ -433,12 +433,31 @@ static unsigned int
 sys_check_priority(unsigned int priority)
 {
 #ifdef SCHED_PRIORITIES
-	if (priority < MIN_PRIORITY_LEVEL || priority > MAX_PRIORITY_LEVEL)
-		return -E_INVAL;
+	return curenv->env_priority;
 #endif
 	return 0;
 }
 
+static unsigned int
+sys_set_priority(unsigned int priority)
+{
+#ifdef SCHED_PRIORITIES
+	if (priority > curenv->env_priority)
+		return -E_INVAL;
+	curenv->env_priority = priority;
+#endif
+	return 0;
+}
+
+sys_reduce_priority(unsigned int priority)
+{
+#ifdef SCHED_PRIORITIES
+	if (priority >= curenv->env_priority)
+		return -E_INVAL;
+	curenv->env_priority -= priority;
+#endif
+	return 0;  // No priorities, no error
+}
 
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
@@ -475,6 +494,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_env_set_pgfault_upcall(a1, (void *) a2);
 	case SYS_check_priority:
 		return sys_check_priority(a1);
+	case SYS_set_priority:
+		return sys_set_priority(a1);
 	case SYS_yield:
 		sys_yield();  // No return
 	default:
