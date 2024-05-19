@@ -429,6 +429,17 @@ sys_ipc_recv(void *dstva)
 	return 0;
 }
 
+static unsigned int
+sys_check_priority(unsigned int priority)
+{
+#ifdef SCHED_PRIORITIES
+	if (priority < MIN_PRIORITY_LEVEL || priority > MAX_PRIORITY_LEVEL)
+		return -E_INVAL;
+#endif
+	return 0;
+}
+
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -462,6 +473,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_ipc_try_send(a1, a2, (void *) a3, a4);
 	case SYS_env_set_pgfault_upcall:
 		return sys_env_set_pgfault_upcall(a1, (void *) a2);
+	case SYS_check_priority:
+		return sys_check_priority(a1);
 	case SYS_yield:
 		sys_yield();  // No return
 	default:
