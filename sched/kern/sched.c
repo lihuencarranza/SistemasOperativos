@@ -37,7 +37,7 @@ sched_priorities(void)
 {
 	struct Env *highest_priority = NULL;
 
-	if (stats.sched_calls % 30 == 0)
+	if (stats.sched_calls % 2 == 0)
 		boost_priority();
 
 	// Find the highest priority environment
@@ -173,7 +173,6 @@ print_stats(void)
 #ifdef SCHED_PRIORITIES
 	cprintf("\n=== BOOSTS STATS ===\n");
 	cprintf("Total boosts %d\n", stats.total_boosts);
-	cprintf("\n");
 	for (int i = 0; i < NENV; i++) {
 		if (envs[i].env_boosts > 0)
 			cprintf("Process %d has %d boosts\n",

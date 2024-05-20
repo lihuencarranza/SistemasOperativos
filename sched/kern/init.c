@@ -68,9 +68,10 @@ i386_init(void)
 		ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_hello, ENV_TYPE_USER);  // CORTO
-	ENV_CREATE(user_hello, ENV_TYPE_USER);  // LARGO
-	ENV_CREATE(user_hello, ENV_TYPE_USER);  // LARGO
+	ENV_CREATE(user_hello, ENV_TYPE_USER);         // CORTO
+	ENV_CREATE(user_forkpriority, ENV_TYPE_USER);  // LARGO
+	ENV_CREATE(user_hello, ENV_TYPE_USER);         // LARGO
+	ENV_CREATE(user_forkpriority, ENV_TYPE_USER);  // LARGO
 #endif  // TEST*
 
 	// Eliminar esta llamada una vez completada la parte 1

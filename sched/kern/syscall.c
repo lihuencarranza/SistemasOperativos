@@ -442,7 +442,8 @@ static int
 sys_set_priority(int priority)
 {
 #ifdef SCHED_PRIORITIES
-	if (priority > curenv->env_priority)
+	if (priority > curenv->env_priority || priority > MAX_PRIORITY_LEVEL ||
+	    priority < MIN_PRIORITY_LEVEL)
 		return curenv->env_priority;
 	curenv->env_priority = priority;
 	return priority;
@@ -450,16 +451,6 @@ sys_set_priority(int priority)
 	return 0;
 }
 
-static int
-sys_reduce_priority(int priority)
-{
-#ifdef SCHED_PRIORITIES
-	if (priority < curenv->env_priority)
-		curenv->env_priority == priority;
-	return curenv->env_priority;
-#endif
-	return 0;  // No priorities, no error
-}
 
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
@@ -498,8 +489,6 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_get_priority();
 	case SYS_set_priority:
 		return sys_set_priority(a1);
-	case SYS_reduce_priority:
-		return sys_reduce_priority(a1);
 	case SYS_yield:
 		sys_yield();  // No return
 	default:
