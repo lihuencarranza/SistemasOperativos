@@ -82,10 +82,70 @@ fisopfs_read(const char *path,
 	return size;
 }
 
+
+
+static int
+fisopfs_mkdir(const char *path, mode_t mode)
+{
+	return 0;
+}
+
+static int
+fisopfs_rmdir(const char *path)
+{
+	return 0;
+}
+
+static int
+fisopfs_unlink(const char *path)
+{
+	return 0;
+}
+
+static int
+fisopfs_create(const char *path)
+{
+	return 0;
+}
+
+static int
+fisopfs_write(const char *path)
+{
+	return 0;
+}
+
+static int
+fisopfs_utimens(const char *path)
+{
+	return 0;
+}
+
+static int
+fisopfs_flush(const char *path)
+{
+	return 0;
+}
+
+static int
+fisopfs_destroy(const char *path)
+{
+	return 0;
+}
+
 static struct fuse_operations operations = {
 	.getattr = fisopfs_getattr,
 	.readdir = fisopfs_readdir,
 	.read = fisopfs_read,
+
+	// new implementations
+	.create = fisopfs_create,
+	.mkdir = fisopfs_mkdir,
+	.write = fisopfs_write,
+	.utimens = fisopfs_utimens,
+	.rmdir = fisopfs_rmdir,
+	.unlink = fisopfs_unlink,
+	.flush = fisopfs_flush,
+	.destroy = fisopfs_destroy,
 };
 
 int
