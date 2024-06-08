@@ -10,6 +10,39 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#define MAX_PATH 100
+#define MAX_CONTENT 1024
+#define MAX_INODES 100
+
+// Esta es la estructura principal para guardar un archivo en memoria.
+// Agregaremos lo necesario para que el filesystem funcione como esperamos.
+// 
+struct inode{
+	size_t file_size; // Tamaño del archivo
+	char file_path[MAX_PATH]; // Path del archivo
+	char file_content[MAX_CONTENT]; // Contenido del archivo
+};
+
+// Esta estructura guarda los inodos de los archivos que tenemos en memoria.
+struct super_block{
+	struct inode inodes[MAX_INODES]; // Inodos
+};
+
+struct inode* inode_from_path(const char *path){
+	// Hardcodeamos un solo archivo
+	static struct inode fisop_file = {
+		.file_size = 2048,
+		.file_path = "/fisop",
+		.file_content = "hola fisopfs!\n"
+	};
+
+	if(strcmp(path, fisop_file.file_path) == 0){
+		return &fisop_file;
+	}
+
+	return NULL;
+}
+
 static int
 fisopfs_getattr(const char *path, struct stat *st)
 {
@@ -68,9 +101,14 @@ fisopfs_read(const char *path,
 	       offset,
 	       size);
 
+	struct inode *file_inode = inode_from_path(path);
+
 	// Solo tenemos un archivo hardcodeado!
-	if (strcmp(path, "/fisop") != 0)
+	if (!file_inode)
 		return -ENOENT;
+
+	// if (strcmp(path, "/fisop") != 0)
+	// 	return -ENOENT;
 
 	if (offset + size > strlen(fisop_file_contenidos))
 		size = strlen(fisop_file_contenidos) - offset;
