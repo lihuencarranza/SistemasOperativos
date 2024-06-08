@@ -83,7 +83,6 @@ fisopfs_read(const char *path,
 }
 
 
-
 static int
 fisopfs_mkdir(const char *path, mode_t mode)
 {
