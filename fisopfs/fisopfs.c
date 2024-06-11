@@ -1,62 +1,36 @@
 #define FUSE_USE_VERSION 30
-#define IS_FILE 1
-#define IS_DIR 2
 
 #include <fuse.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-//#include <fisopfs.h>
+#include "fisopfs.h"
 
-#define MAX_PATH 100
-#define MAX_CONTENT 1024
-#define MAX_INODES 100
-
-// Esta es la estructura principal para guardar un archivo en memoria.
-// Agregaremos lo necesario para que el filesystem funcione como esperamos.
-// 
-typedef struct inode{
-	size_t file_size; // Tamaño del archivo
-	int uid; // User ID
-	int type; // Tipo de archivo (IS_FILE o IS_DIR)
-	int nlink; // Cantidad de links
-	mode_t mode; // Modo
-
-	char file_name[MAX_PATH]; // Nombre del archivo/directorio. Si es root, es "/".
-	char file_parent[MAX_PATH]; // Path del directorio que lo contiene o path del directorio padre,  o si es root está vacío.
-	char file_content[MAX_CONTENT]; // Contenido del archivo
-}inode_t;
-
-// Esta estructura guarda los inodos de los archivos que tenemos en memoria.
-typedef struct super_block{
-	struct inode inodes[MAX_INODES]; // Inodos
-}super_block_t;
 
 struct super_block superb = {};
 
-static int create_inode_from_path(const char *path, mode_t mode, int type){
+static int
+create_inode_from_path(const char *path, mode_t mode, int type)
+{
 	// Hardcodeamos un solo archivo
 	static struct inode i;
-	i.file_size = 15; //SETEAR A 0
-	strcpy(i.file_content,"hola fisopfs!\n"); //BORRRARLO!
+	i.file_size = 15;                           // SETEAR A 0
+	strcpy(i.file_content, "hola fisopfs!\n");  // BORRRARLO!
 	i.uid = getuid();
 	i.type = type;
-	i.nlink = (type==IS_FILE) ? 1 : 2; //Un archivo comienza con un link y un directorio con 2.
+	i.nlink =
+	        (type == IS_FILE)
+	                ? 1
+	                : 2;  // Un archivo comienza con un link y un directorio con 2.
 	i.mode = mode;
 	superb.inodes[0] = i;
 
-	strcpy(i.file_name, path); //SACARLE LA / AL PATH
+	strcpy(i.file_name, path);  // SACARLE LA / AL PATH
 	return 0;
 }
 
-static int get_inode_index_from_path(const char *path){
-	for(int i = 0; i < MAX_INODES; i++){
-		if(strcmp(superb.inodes[i].file_name, path) == 0){
+static int
+get_inode_index_from_path(const char *path)
+{
+	for (int i = 0; i < MAX_INODES; i++) {
+		if (strcmp(superb.inodes[i].file_name, path) == 0) {
 			return i;
 		}
 	}
@@ -69,8 +43,10 @@ fisopfs_getattr(const char *path, struct stat *st)
 	printf("[debug] fisopfs_getattr - path: %s\n", path);
 
 	int index = get_inode_index_from_path(path);
-	if (index == -1){
-	 	printf("[debug] fisopfs_getattr - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n", path);
+	if (index == -1) {
+		printf("[debug] fisopfs_getattr - path: \"%s\" FALLÓ POR NO "
+		       "ENCONTRAR INDICE \n",
+		       path);
 		return -ENOENT;
 	}
 	printf("[debug] fisopfs_getattr: index found - index: %d\n", index);
@@ -78,7 +54,7 @@ fisopfs_getattr(const char *path, struct stat *st)
 	struct inode i = superb.inodes[index];
 	st->st_size = i.file_size;
 	st->st_uid = i.uid;
-	st->st_nlink = i.nlink; // Hardcodeado
+	st->st_nlink = i.nlink;  // Hardcodeado
 	st->st_mode = i.mode;
 	return 0;
 }
@@ -120,7 +96,7 @@ fisopfs_read(const char *path,
 	       offset,
 	       size);
 
-	//struct inode *file_inode = create_inode_from_path(path);
+	// struct inode *file_inode = create_inode_from_path(path);
 
 	// Solo tenemos un archivo hardcodeado!
 	// if (!file_inode)
@@ -195,13 +171,13 @@ fisopfs_init()
 {
 	printf("[debug] fisop_init - creating root\n");
 	static struct inode i;
-	i.file_size = 0; //SETEAR A 0
+	i.file_size = 0;  // SETEAR A 0
 	i.uid = getuid();
 	i.type = IS_DIR;
-	i.nlink = 2; //Root tiene 2.
+	i.nlink = 2;  // Root tiene 2.
 	i.mode = __S_IFDIR | 0755;
 	strcpy(i.file_name, "/");
-	
+
 	superb.inodes[0] = i;
 	return 0;
 }
