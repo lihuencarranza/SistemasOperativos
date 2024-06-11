@@ -1,1 +1,4 @@
 fisopfs.c
+fisopfs.h
+test.c
+test_funcional.py
