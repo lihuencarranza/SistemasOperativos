@@ -119,18 +119,21 @@ fisopfs_read(const char *path,
 static int
 fisopfs_mkdir(const char *path, mode_t mode)
 {
+	printf("[debug] fisopfs_mkdir - path: %s - mode: %d \n", path, mode);
 	return 0;
 }
 
 static int
 fisopfs_rmdir(const char *path)
 {
+	printf("[debug] fisopfs_rmdir - path: %s\n", path);
 	return 0;
 }
 
 static int
 fisopfs_unlink(const char *path)
 {
+	printf("[debug] fisopfs_unlink - path: %s\n", path);
 	return 0;
 }
 
@@ -145,24 +148,28 @@ fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *file_info)
 static int
 fisopfs_write(const char *path)
 {
+	printf("[debug] fisopfs_write - path: %s\n", path);
 	return 0;
 }
 
 static int
 fisopfs_utimens(const char *path)
 {
+	printf("[debug] fisopfs_utimens - path: %s\n", path);
 	return 0;
 }
 
 static int
 fisopfs_flush(const char *path)
 {
+	printf("[debug] fisopfs_flush - path: %s\n", path);
 	return 0;
 }
 
 static int
 fisopfs_destroy(const char *path)
 {
+	printf("[debug] fisopfs_destroy - path: %s\n", path);
 	return 0;
 }
 
@@ -202,8 +209,5 @@ static struct fuse_operations operations = {
 int
 main(int argc, char *argv[])
 {
-	// create_inode_from_path("/pepe1", 0, NULL);
-	// create_inode_from_path("/pepe2", 0, NULL);
-
 	return fuse_main(argc, argv, &operations, NULL);
 }
