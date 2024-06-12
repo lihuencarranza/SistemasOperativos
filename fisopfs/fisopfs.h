@@ -29,8 +29,8 @@ typedef struct inode {
 	                             // del directorio padre,  o si es root está vacío.
 	char file_path[MAX_PATH];  // Path completo del archivo/directorio.
 	char file_content[MAX_CONTENT];  // Contenido del archivo
-	
-	struct inode *children[MAX_INODES]; // Hijos de un directorio
+
+	struct inode *children[MAX_INODES];  // Hijos de un directorio
 
 } inode_t;
 

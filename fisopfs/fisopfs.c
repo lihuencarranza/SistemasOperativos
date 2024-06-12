@@ -174,7 +174,7 @@ fisopfs_destroy(const char *path)
 }
 
 static void *
-fisopfs_init()
+fisopfs_init(struct fuse_conn_info *conn)
 {
 	printf("[debug] fisop_init - creating root\n");
 	static struct inode i;
@@ -186,7 +186,7 @@ fisopfs_init()
 	strcpy(i.file_name, "/");
 
 	superb.inodes[0] = i;
-	return 0;
+	return conn;
 }
 
 static struct fuse_operations operations = {
