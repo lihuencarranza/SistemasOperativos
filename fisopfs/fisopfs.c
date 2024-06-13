@@ -3,6 +3,7 @@
 #include <fuse.h>
 #include "fisopfs.h"
 
+char fs_fisopfs[MAX_PATH] = "fs.fisopfs";
 
 struct super_block superb = {};
 
@@ -20,6 +21,8 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	                ? 1
 	                : 2;  // Un archivo comienza con un link y un directorio con 2.
 	i.mode = mode;
+
+
 	superb.inodes[0] = i;
 
 	strcpy(i.file_name, path);  // SACARLE LA / AL PATH
@@ -45,17 +48,21 @@ fisopfs_getattr(const char *path, struct stat *st)
 	int index = get_inode_index_from_path(path);
 	if (index == -1) {
 		printf("[debug] fisopfs_getattr - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE \n",
+		       "ENCONTRAR "
+		       "INDICE \n",
 		       path);
 		return -ENOENT;
 	}
-	printf("[debug] fisopfs_getattr: index found - index: %d\n", index);
 
 	struct inode i = superb.inodes[index];
-	st->st_size = i.file_size;
 	st->st_uid = i.uid;
-	st->st_nlink = i.nlink;  // Hardcodeado
 	st->st_mode = i.mode;
+	st->st_nlink = i.nlink;
+	st->st_size = i.file_size;
+	st->st_atime = i.atime;
+	st->st_mtime = i.mtime;
+
+
 	return 0;
 }
 
@@ -96,21 +103,29 @@ fisopfs_read(const char *path,
 	       offset,
 	       size);
 
-	// struct inode *file_inode = create_inode_from_path(path);
-
-	// Solo tenemos un archivo hardcodeado!
-	// if (!file_inode)
-	// 	return -ENOENT;
-
-	if (strcmp(path, "/fisop") != 0)
+	int index = get_inode_index_from_path(path);
+	if (index == -1) {
+		printf("[debug] fisopfs_read - path: \"%s\" FALLÓ POR NO "
+		       "ENCONTRAR "
+		       "INDICE \n",
+		       path);
 		return -ENOENT;
+	}
 
-	if (offset + size > strlen(fisop_file_contenidos))
-		size = strlen(fisop_file_contenidos) - offset;
+	struct inode i = superb.inodes[index];
+	if (offset >= i.file_size) {
+		return 0;
+	}
 
-	size = size > 0 ? size : 0;
+	size_t len = i.file_size - offset;
+	if (len > size) {
+		len = size;
+	}
 
-	memcpy(buffer, fisop_file_contenidos + offset, size);
+	memcpy(buffer, i.file_content + offset, len);
+
+	i.atime = time(NULL);
+
 
 	return size;
 }
@@ -146,46 +161,68 @@ fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *file_info)
 }
 
 static int
-fisopfs_write(const char *path)
+fisopfs_write(const char *path,
+              const char *buffer,
+              size_t size,
+              off_t offset,
+              struct fuse_file_info *fi)
 {
 	printf("[debug] fisopfs_write - path: %s\n", path);
 	return 0;
 }
 
 static int
-fisopfs_utimens(const char *path)
+fisopfs_utimens(const char *path, const struct timespec tv[2])
 {
 	printf("[debug] fisopfs_utimens - path: %s\n", path);
 	return 0;
 }
 
 static int
-fisopfs_flush(const char *path)
+fisopfs_flush(const char *path, struct fuse_file_info *fi)
 {
 	printf("[debug] fisopfs_flush - path: %s\n", path);
+
 	return 0;
 }
 
 static int
-fisopfs_destroy(const char *path)
+fisopfs_destroy(void *private_data)
 {
-	printf("[debug] fisopfs_destroy - path: %s\n", path);
+	printf("[debug] fisopfs_destroy - destroying root\n");
 	return 0;
+}
+
+static void
+create_root()
+{
+	printf("[debug] create_root - creating root\n");
+	FILE *fs = fopen(fs_fisopfs, "w");
+	if (!fs) {
+		printf("[debug] create_root - error creating root\n");
+		exit(1);
+	}
+
+	create_inode_from_path("/", __S_IFDIR | 0755, IS_DIR);
+	fwrite(&superb, sizeof(superb), 1, fs);
+	fclose(fs);
 }
 
 static void *
 fisopfs_init(struct fuse_conn_info *conn)
 {
 	printf("[debug] fisop_init - creating root\n");
-	static struct inode i;
-	i.file_size = 0;  // SETEAR A 0
-	i.uid = getuid();
-	i.type = IS_DIR;
-	i.nlink = 2;  // Root tiene 2.
-	i.mode = __S_IFDIR | 0755;
-	strcpy(i.file_name, "/");
 
-	superb.inodes[0] = i;
+	FILE *fs = fopen(fs_fisopfs, "r");
+	if (!fs) {
+		printf("[debug] fisop_init - creating root\n");
+		// Si no existe el archivo, lo creamos
+		create_root();
+	} else {
+		fread(&superb, sizeof(superb), 1, fs);
+		fclose(fs);
+	}
+
 	return conn;
 }
 

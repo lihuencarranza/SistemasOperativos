@@ -24,6 +24,9 @@ typedef struct inode {
 	int nlink;         // Cantidad de links
 	mode_t mode;       // Modo
 
+	time_t atime;  // Último acceso
+	time_t mtime;  // Última modificación
+
 	char file_name[MAX_PATH];  // Nombre del archivo/directorio. Si es root, es "/".
 	char file_parent[MAX_PATH];  // Path del directorio que lo contiene o path
 	                             // del directorio padre,  o si es root está vacío.
