@@ -178,18 +178,34 @@ fisopfs_utimens(const char *path, const struct timespec tv[2])
 	return 0;
 }
 
+
+static void
+fisopfs_destroy(void *private_data)
+{
+	printf("[debug] fisopfs_destroy - destroying root\n");
+
+	FILE *fs = fopen(fs_fisopfs, "w");
+	if (!fs) {
+		printf("[debug] fisopfs_destroy - error destroying root\n");
+		exit(1);
+	}
+
+	if (fwrite(&superb, sizeof(superb), 1, fs) != 1) {
+		printf("[debug] fisopfs_destroy - error writing superb\n");
+		exit(1);
+	}
+
+	fflush(fs);
+	fclose(fs);
+}
+
 static int
 fisopfs_flush(const char *path, struct fuse_file_info *fi)
 {
 	printf("[debug] fisopfs_flush - path: %s\n", path);
 
-	return 0;
-}
+	fisopfs_destroy(NULL);
 
-static int
-fisopfs_destroy(void *private_data)
-{
-	printf("[debug] fisopfs_destroy - destroying root\n");
 	return 0;
 }
 
