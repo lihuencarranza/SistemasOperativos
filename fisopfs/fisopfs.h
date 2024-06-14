@@ -40,4 +40,5 @@ typedef struct inode {
 // Esta estructura guarda los inodos de los archivos que tenemos en memoria.
 typedef struct super_block {
 	struct inode inodes[MAX_INODES];  // Inodos
+	int next_free_index;							// Próximo índice libre
 } super_block_t;

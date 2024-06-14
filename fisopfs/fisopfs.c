@@ -5,15 +5,19 @@
 
 char fs_fisopfs[MAX_PATH] = "fs.fisopfs";
 
-struct super_block superb = {};
+struct super_block superb = {.next_free_index = 0};
 
 static int
 create_inode_from_path(const char *path, mode_t mode, int type)
 {
 	// Hardcodeamos un solo archivo
+	printf("[debug] create_inode_from_path PRE CREACION- path: %s - mode: %d - type: %d\n",
+	       path,
+	       mode,
+	       type);
+
 	static struct inode i;
-	i.file_size = 15;                           // SETEAR A 0
-	strcpy(i.file_content, "hola fisopfs!\n");  // BORRRARLO!
+	i.file_size = 0;                           // SETEAR A 0
 	i.uid = getuid();
 	i.type = type;
 	i.nlink =
@@ -22,18 +26,47 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	                : 2;  // Un archivo comienza con un link y un directorio con 2.
 	i.mode = mode;
 
-
-	superb.inodes[0] = i;
-
 	strcpy(i.file_name, path);  // SACARLE LA / AL PATH
+
+	superb.inodes[superb.next_free_index] = i;
+	superb.next_free_index++;
+
+	printf("[debug] create_inode_from_path POST CREACION - path: %s - mode: %d - type: %d - "
+	       "new_index: %d\n",
+	       superb.inodes[superb.next_free_index-1].file_name,
+	       superb.inodes[superb.next_free_index-1].mode,
+	       superb.inodes[superb.next_free_index-1].type,
+	       superb.next_free_index);
 	return 0;
+}
+
+char* obtenerUltimoElemento(char *path) {
+    char *ultimoElemento = strrchr(path, '/');
+    if (ultimoElemento != NULL) {
+        return ultimoElemento + 1; // Se suma 1 para no incluir el '/'
+    }
+    return path; // Si no hay '/', se devuelve la ruta completa
 }
 
 static int
 get_inode_index_from_path(const char *path)
 {
+	if(strcmp(path, "/") == 0)
+		return 0;
+	
+	printf("[debug] get_inode_index_from_path SPLIT DEL PATH: %s\n", path);
+	char *buff = obtenerUltimoElemento(path);
+	printf("[debug] get_inode_index_from_path RESULTADO DE SPLIT: %s\n", buff);
+	
+/*
+	char* primer_dir = strtok(path, "/");
+	char* resto = strtok(NULL, "/");
+	printf("[debug] get_inode_index_from_path SPLIT DEL PATH: %s\n", path);
+	printf("primer_dir: %s\n", primer_dir);
+	printf("resto: %s\n", resto);*/
+
 	for (int i = 0; i < MAX_INODES; i++) {
-		if (strcmp(superb.inodes[i].file_name, path) == 0) {
+		if (strcmp(superb.inodes[i].file_name, buff) == 0) {
 			return i;
 		}
 	}
@@ -55,6 +88,7 @@ fisopfs_getattr(const char *path, struct stat *st)
 	}
 
 	struct inode i = superb.inodes[index];
+	
 	st->st_uid = i.uid;
 	st->st_mode = i.mode;
 	st->st_nlink = i.nlink;
@@ -157,7 +191,7 @@ static int
 fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *file_info)
 {
 	printf("[debug] fisopfs_create - path: %s - mode: %d \n", path, mode);
-	return create_inode_from_path(path, mode, IS_DIR);
+	return create_inode_from_path(path, mode, IS_FILE);
 }
 
 static int
@@ -213,25 +247,24 @@ static void
 create_root()
 {
 	printf("[debug] create_root - creating root\n");
-	FILE *fs = fopen(fs_fisopfs, "w");
+	/*FILE *fs = fopen(fs_fisopfs, "w");
 	if (!fs) {
 		printf("[debug] create_root - error creating root\n");
 		exit(1);
 	}
-
+	*/
 	create_inode_from_path("/", __S_IFDIR | 0755, IS_DIR);
-	fwrite(&superb, sizeof(superb), 1, fs);
-	fclose(fs);
+	//fwrite(&superb, sizeof(superb), 1, fs);
+	//fclose(fs);
 }
 
 static void *
 fisopfs_init(struct fuse_conn_info *conn)
 {
-	printf("[debug] fisop_init - creating root\n");
+	printf("[debug] fisop_init - Starting init\n");
 
 	FILE *fs = fopen(fs_fisopfs, "r");
 	if (!fs) {
-		printf("[debug] fisop_init - creating root\n");
 		// Si no existe el archivo, lo creamos
 		create_root();
 	} else {
