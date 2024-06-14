@@ -10,7 +10,6 @@ struct super_block superb = {.next_free_index = 0};
 static int
 create_inode_from_path(const char *path, mode_t mode, int type)
 {
-	// Hardcodeamos un solo archivo
 	printf("[debug] create_inode_from_path PRE CREACION- path: %s - mode: %d - type: %d\n",
 	       path,
 	       mode,
@@ -19,6 +18,7 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	static struct inode i;
 	i.file_size = 0;                           // SETEAR A 0
 	i.uid = getuid();
+	i.gid = getgid();
 	i.type = type;
 	i.nlink =
 	        (type == IS_FILE)
@@ -26,7 +26,8 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	                : 2;  // Un archivo comienza con un link y un directorio con 2.
 	i.mode = mode;
 
-	strcpy(i.file_name, path);  // SACARLE LA / AL PATH
+	strcpy(i.file_name, path);  // SACARLE LA / AL NAME
+	strcpy(i.file_path, path);  // SACARLE LA / AL PATH
 
 	superb.inodes[superb.next_free_index] = i;
 	superb.next_free_index++;
@@ -65,10 +66,16 @@ get_inode_index_from_path(const char *path)
 	printf("primer_dir: %s\n", primer_dir);
 	printf("resto: %s\n", resto);*/
 
-	for (int i = 0; i < MAX_INODES; i++) {
-		if (strcmp(superb.inodes[i].file_name, buff) == 0) {
+	printf("[debug] get_inode_index_from_path - buscando el path \"%s\" en el super bloque\n", buff);
+	int len_inodes = sizeof(superb.inodes)/sizeof(superb.inodes[0]);
+
+	for (int i = 0; i < superb.next_free_index; i++) {
+		if (strcmp(superb.inodes[i].file_name, path) == 0) {
+			printf("[debug] get_inode_index_from_path - matcheo el path \"%s\" con el inodo [%i] \n", buff, i);
 			return i;
 		}
+		
+		printf("[debug] get_inode_index_from_path(for[%i]) - No matcheó [\"%s\" != \"%s\"]\n", i, buff, superb.inodes[i].file_name);
 	}
 	return -1;
 }
@@ -78,18 +85,20 @@ fisopfs_getattr(const char *path, struct stat *st)
 {
 	printf("[debug] fisopfs_getattr - path: %s\n", path);
 
+	memset(st, 0, sizeof(struct stat));
+
 	int index = get_inode_index_from_path(path);
 	if (index == -1) {
-		printf("[debug] fisopfs_getattr - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR "
-		       "INDICE \n",
-		       path);
+		printf("[debug] fisopfs_getattr - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n", path);
 		return -ENOENT;
 	}
+
+	printf("[debug] fisopfs_getattr - encontró el path : %s en el indice: [%i]\n", path, index);
 
 	struct inode i = superb.inodes[index];
 	
 	st->st_uid = i.uid;
+	st->st_gid = i.gid;
 	st->st_mode = i.mode;
 	st->st_nlink = i.nlink;
 	st->st_size = i.file_size;
@@ -101,48 +110,52 @@ fisopfs_getattr(const char *path, struct stat *st)
 }
 
 static int
-fisopfs_readdir(const char *path,
-                void *buffer,
-                fuse_fill_dir_t filler,
-                off_t offset,
-                struct fuse_file_info *fi)
+fisopfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
-	printf("[debug] fisopfs_readdir - path: %s\n", path);
+	printf("\n\n\n\n[debug] fisopfs_readdir - path: %s\n", path);
 
 	// Los directorios '.' y '..'
 	filler(buffer, ".", NULL, 0);
 	filler(buffer, "..", NULL, 0);
 
-	// Si nos preguntan por el directorio raiz, solo tenemos un archivo
-	if (strcmp(path, "/") == 0) {
-		filler(buffer, "fisop", NULL, 0);
-		return 0;
+	int index = get_inode_index_from_path(path);
+	if (index == -1) { 
+		printf("[debug] fisopfs_READDIR - path: \"%s\" Indice no encontrado \n", path); 
+		return -ENOENT;
+ 	}
+
+	struct inode i = superb.inodes[index];
+	printf("[debug] fisopfs_readdir - a fillear: %s\n\n\n\n\n", path);
+	//filler(buffer, superb.inodes[1].file_path, NULL, 0);
+	
+	for (int j = 0; j < superb.next_free_index; j++) {
+		if (strcmp(superb.inodes[j].file_path, path) == 0) {
+			printf("[debug] fisopfs_readdir - filleo match: %s == %s \n\n\n\n",superb.inodes[j].file_path, path);
+			filler(buffer, superb.inodes[j].file_path, NULL, 0);
+		}
 	}
 
-	return -ENOENT;
+
+	// Si nos preguntan por el directorio raiz, solo tenemos un archivo
+	// if (strcmp(path, "/") == 0) {
+	// 	filler(buffer, "fisop", NULL, 0);
+	// 	return 0;
+	// }
+
+	return 0;
 }
 
 #define MAX_CONTENIDO 100
 static char fisop_file_contenidos[MAX_CONTENIDO] = "hola fisopfs!\n";
 
 static int
-fisopfs_read(const char *path,
-             char *buffer,
-             size_t size,
-             off_t offset,
-             struct fuse_file_info *fi)
+fisopfs_read(const char *path, char *buffer, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-	printf("[debug] fisopfs_read - path: %s, offset: %lu, size: %lu\n",
-	       path,
-	       offset,
-	       size);
+	printf("\n\n\n\n[debug] fisopfs_read - path: %s, offset: %lu, size: %lu\n", path, offset, size);
 
 	int index = get_inode_index_from_path(path);
 	if (index == -1) {
-		printf("[debug] fisopfs_read - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR "
-		       "INDICE \n",
-		       path);
+		printf("[debug] fisopfs_read - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n", path);
 		return -ENOENT;
 	}
 
@@ -168,8 +181,8 @@ fisopfs_read(const char *path,
 static int
 fisopfs_mkdir(const char *path, mode_t mode)
 {
-	printf("[debug] fisopfs_mkdir - path: %s - mode: %d \n", path, mode);
-	return 0;
+	printf("\n\n\n\n[debug] fisopfs_mkdir - path: %s - mode: %d \n", path, mode);
+	return create_inode_from_path(path, mode, IS_DIR);
 }
 
 static int
@@ -247,15 +260,14 @@ static void
 create_root()
 {
 	printf("[debug] create_root - creating root\n");
-	/*FILE *fs = fopen(fs_fisopfs, "w");
+	FILE *fs = fopen(fs_fisopfs, "w");
 	if (!fs) {
 		printf("[debug] create_root - error creating root\n");
 		exit(1);
 	}
-	*/
 	create_inode_from_path("/", __S_IFDIR | 0755, IS_DIR);
-	//fwrite(&superb, sizeof(superb), 1, fs);
-	//fclose(fs);
+	fwrite(&superb, sizeof(superb), 1, fs);
+	fclose(fs);
 }
 
 static void *

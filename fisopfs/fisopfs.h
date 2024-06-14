@@ -20,6 +20,7 @@
 typedef struct inode {
 	size_t file_size;  // Tamaño del archivo
 	int uid;           // User ID
+	int gid;           // Group ID
 	int type;          // Tipo de archivo (IS_FILE o IS_DIR)
 	int nlink;         // Cantidad de links
 	mode_t mode;       // Modo
