@@ -17,6 +17,7 @@ int fetch_free_index(struct super_block *superb){
 	}
 	return i;
 }
+
 int set_inode_in_superblock(struct inode *i){
 	int free_idx = fetch_free_index(&superb);
 	superb.inodes[free_idx] = *i;
@@ -55,7 +56,7 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	return 0;
 }
 
-char* obtenerUltimoElemento(char *path) {
+const char* obtenerUltimoElemento(const char *path) {
     char *ultimoElemento = strrchr(path, '/');
     if (ultimoElemento != NULL) {
         return ultimoElemento + 1; // Se suma 1 para no incluir el '/'
@@ -70,7 +71,7 @@ get_inode_index_from_path(const char *path)
 		return 0;
 	
 	printf("[debug] get_inode_index_from_path SPLIT DEL PATH: %s\n", path);
-	char *buff = obtenerUltimoElemento(path);
+	const char *buff = obtenerUltimoElemento(path);
 	printf("[debug] get_inode_index_from_path RESULTADO DE SPLIT: %s\n", buff);
 	
 /*
@@ -81,7 +82,7 @@ get_inode_index_from_path(const char *path)
 	printf("resto: %s\n", resto);*/
 
 	printf("[debug] get_inode_index_from_path - buscando el path \"%s\" en el super bloque\n", buff);
-	int len_inodes = sizeof(superb.inodes)/sizeof(superb.inodes[0]);
+	//int len_inodes = sizeof(superb.inodes)/sizeof(superb.inodes[0]);
 
 	for (int i = 0; i < MAX_INODES; i++) {
 		if (superb.bitmap_inodos[i] == 1 && strcmp(superb.inodes[i].file_name, path) == 0) { // bitmap == 1 para saber si accedemos algo valido
@@ -138,11 +139,11 @@ fisopfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t of
 		return -ENOENT;
  	}
 
-	struct inode i = superb.inodes[index];
+	//struct inode i = superb.inodes[index];
 	printf("[debug] fisopfs_readdir - a fillear: %s\n\n\n\n\n", path);
 	//filler(buffer, superb.inodes[1].file_path, NULL, 0);
 	
-	for (int j = 0; j < MAX_INODES; j++) {
+	for (int j = 0; j < MAX_INODES; j++) { //TODO: esta medio sucio, se podria pedir el inode from path arriba y aca abajo chequear nomas
 		if (superb.bitmap_inodos[j] == 1 && strcmp(superb.inodes[j].file_path, path) == 0) {   // bitmap == 1 para saber si accedemos algo valido
 			printf("[debug] fisopfs_readdir - filleo match: %s == %s \n\n\n\n",superb.inodes[j].file_path, path);
 			filler(buffer, superb.inodes[j].file_path, NULL, 0);
@@ -160,7 +161,7 @@ fisopfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t of
 }
 
 #define MAX_CONTENIDO 100
-static char fisop_file_contenidos[MAX_CONTENIDO] = "hola fisopfs!\n";
+//static char fisop_file_contenidos[MAX_CONTENIDO] = "hola fisopfs!\n";
 
 static int
 fisopfs_read(const char *path, char *buffer, size_t size, off_t offset, struct fuse_file_info *fi)
@@ -235,7 +236,17 @@ fisopfs_write(const char *path,
 static int
 fisopfs_utimens(const char *path, const struct timespec tv[2])
 {
-	printf("[debug] fisopfs_utimens - path: %s\n", path);
+	printf("\n\n\n\n[debug] fisopfs_utimens NO IMPLEMENTADO!!! - path: %s\n\n\n\n", path);
+	int index = get_inode_index_from_path(path);
+	if (index == -1) {
+		printf("[debug] fisopfs_utimens - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n", path);
+		return -ENOENT;
+	}
+
+	struct inode i = superb.inodes[index];
+	i.atime = tv[0].tv_sec;
+	i.mtime = tv[1].tv_sec;
+
 	return 0;
 }
 
