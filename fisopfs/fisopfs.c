@@ -5,7 +5,24 @@
 
 char fs_fisopfs[MAX_PATH] = "fs.fisopfs";
 
-struct super_block superb = {.next_free_index = 0};
+struct super_block superb = {};
+
+int fetch_free_index(struct super_block *superb){
+	if(!superb)
+		return -1;
+	int i = 0;
+	while (i<(MAX_INODES-1) && superb->bitmap_inodos[i])
+	{
+		i++;
+	}
+	return i;
+}
+int set_inode_in_superblock(struct inode *i){
+	int free_idx = fetch_free_index(&superb);
+	superb.inodes[free_idx] = *i;
+	superb.bitmap_inodos[free_idx] = 1;
+	return free_idx;
+}
 
 static int
 create_inode_from_path(const char *path, mode_t mode, int type)
@@ -28,16 +45,13 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 
 	strcpy(i.file_name, path);  // SACARLE LA / AL NAME
 	strcpy(i.file_path, path);  // SACARLE LA / AL PATH
-
-	superb.inodes[superb.next_free_index] = i;
-	superb.next_free_index++;
-
-	printf("[debug] create_inode_from_path POST CREACION - path: %s - mode: %d - type: %d - "
-	       "new_index: %d\n",
-	       superb.inodes[superb.next_free_index-1].file_name,
-	       superb.inodes[superb.next_free_index-1].mode,
-	       superb.inodes[superb.next_free_index-1].type,
-	       superb.next_free_index);
+	
+	int free_idx = set_inode_in_superblock(&i);
+	
+	printf("[debug] create_inode_from_path POST CREACION - path: %s - mode: %d - type: %d  \n",
+	       superb.inodes[free_idx].file_name,
+	       superb.inodes[free_idx].mode,
+	       superb.inodes[free_idx].type);
 	return 0;
 }
 
@@ -69,8 +83,8 @@ get_inode_index_from_path(const char *path)
 	printf("[debug] get_inode_index_from_path - buscando el path \"%s\" en el super bloque\n", buff);
 	int len_inodes = sizeof(superb.inodes)/sizeof(superb.inodes[0]);
 
-	for (int i = 0; i < superb.next_free_index; i++) {
-		if (strcmp(superb.inodes[i].file_name, path) == 0) {
+	for (int i = 0; i < MAX_INODES; i++) {
+		if (superb.bitmap_inodos[i] == 1 && strcmp(superb.inodes[i].file_name, path) == 0) { // bitmap == 1 para saber si accedemos algo valido
 			printf("[debug] get_inode_index_from_path - matcheo el path \"%s\" con el inodo [%i] \n", buff, i);
 			return i;
 		}
@@ -128,8 +142,8 @@ fisopfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t of
 	printf("[debug] fisopfs_readdir - a fillear: %s\n\n\n\n\n", path);
 	//filler(buffer, superb.inodes[1].file_path, NULL, 0);
 	
-	for (int j = 0; j < superb.next_free_index; j++) {
-		if (strcmp(superb.inodes[j].file_path, path) == 0) {
+	for (int j = 0; j < MAX_INODES; j++) {
+		if (superb.bitmap_inodos[j] == 1 && strcmp(superb.inodes[j].file_path, path) == 0) {   // bitmap == 1 para saber si accedemos algo valido
 			printf("[debug] fisopfs_readdir - filleo match: %s == %s \n\n\n\n",superb.inodes[j].file_path, path);
 			filler(buffer, superb.inodes[j].file_path, NULL, 0);
 		}
@@ -260,14 +274,24 @@ static void
 create_root()
 {
 	printf("[debug] create_root - creating root\n");
-	FILE *fs = fopen(fs_fisopfs, "w");
-	if (!fs) {
-		printf("[debug] create_root - error creating root\n");
-		exit(1);
-	}
-	create_inode_from_path("/", __S_IFDIR | 0755, IS_DIR);
-	fwrite(&superb, sizeof(superb), 1, fs);
-	fclose(fs);
+	
+	//create_inode_from_path("/", __S_IFDIR | 0755, IS_DIR);
+
+	static struct inode root;
+	root.file_size = 1024; // maximo tamaño estático por ahora.
+	root.uid = getuid();
+	root.gid = getgid();
+	root.type = IS_DIR;
+	root.nlink = (root.type == IS_FILE) ? 1 : 2;  // Un archivo comienza con un link y un directorio con 2.
+	root.mode = __S_IFDIR | 0755;
+
+	strcpy(root.file_name, "/");  // root se llama '/'
+	strcpy(root.file_path, "");  // vacío, ese es el path de root.
+
+	superb.inodes[0] = root; // guardamos el root? TODO checkear en otra función si se guarda
+	superb.bitmap_inodos[0] = 1; // ocupado. TODO hacer constantes para ocupado desocupado.
+	
+	return;
 }
 
 static void *
@@ -280,7 +304,7 @@ fisopfs_init(struct fuse_conn_info *conn)
 		// Si no existe el archivo, lo creamos
 		create_root();
 	} else {
-		fread(&superb, sizeof(superb), 1, fs);
+		fread(&superb, sizeof(superb), 1, fs); 
 		fclose(fs);
 	}
 
