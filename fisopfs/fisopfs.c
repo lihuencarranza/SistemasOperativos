@@ -44,7 +44,7 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	       type);
 
 	static struct inode i;
-	i.file_size = 0;                           // SETEAR A 0
+	i.file_size = 16;                           // SETEAR A 0
 	i.uid = getuid();
 	i.gid = getgid();
 	i.type = type;
@@ -53,6 +53,7 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	i.mtime = time(NULL);
 	i.ctime = time(NULL);
 	i.nlink = (type == IS_FILE)? 1: 2;  // Un archivo comienza con un link y un directorio con 2.
+	(type == IS_FILE)? memcpy(i.file_content, "CONTENIDO DEFAULT",16):NULL;
 	strcpy(i.file_name, obtenerUltimoElemento(path));  // SACARLE LA / AL NAME
 	strcpy(i.file_path, path);  // SACARLE LA / AL PATH
 	strcpy(i.file_parent, "/"); // SACARLE LA / AL PARENT
@@ -68,8 +69,6 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	       superb.inodes[free_idx].type);
 	return 0;
 }
-
-
 
 static int
 get_inode_index_from_path(const char *path)
@@ -205,7 +204,6 @@ fisopfs_read(const char *path, char *buffer, size_t size, off_t offset, struct f
 
 	i.atime = time(NULL);
 
-
 	return size;
 }
 
@@ -242,6 +240,17 @@ fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *file_info)
 static int
 fisopfs_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
 	printf("\n\n\n\n [debug] fisopfs_write SIN IMPLEMENTAR- path: %s\n\n\n\n", path);
+
+	int index = get_inode_index_from_path(path);
+	if (index == -1) {
+		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n\n\n\n\n", path);
+		errno = -ENOENT;
+		return -ENOENT;
+	}
+
+	struct inode i = superb.inodes[index];
+
+
 	return 0;
 }
 
@@ -262,7 +271,6 @@ fisopfs_utimens(const char *path, const struct timespec tv[2])
 
 	return 0;
 }
-
 
 static void
 fisopfs_destroy(void *private_data)
@@ -344,7 +352,7 @@ fisopfs_init(struct fuse_conn_info *conn)
 
 static struct fuse_operations operations = {
 	.getattr = fisopfs_getattr, //lista
-	.readdir = fisopfs_readdir, //está pero no anda
+	.readdir = fisopfs_readdir, //lista
 	.read = fisopfs_read,
 
 	// new implementations
