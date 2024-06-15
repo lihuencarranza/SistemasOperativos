@@ -1,5 +1,5 @@
 #define FUSE_USE_VERSION 30
-
+#define ROOT "/"
 #include <fuse.h>
 #include "fisopfs.h"
 
@@ -7,11 +7,19 @@ char fs_fisopfs[MAX_PATH] = "fs.fisopfs";
 
 struct super_block superb = {};
 
+const char* obtenerUltimoElemento(const char *path) {
+    char *ultimoElemento = strrchr(path, '/');
+    if (ultimoElemento != NULL) {
+        return ultimoElemento + 1; // Se suma 1 para no incluir el '/'
+    }
+    return path; // Si no hay '/', se devuelve la ruta completa
+}
+
 int fetch_free_index(struct super_block *superb){
 	if(!superb)
 		return -1;
 	int i = 0;
-	while (i<(MAX_INODES-1) && superb->bitmap_inodos[i])
+	while (i<(MAX_INODES) && superb->bitmap_inodos[i] == 1)
 	{
 		i++;
 	}
@@ -20,6 +28,8 @@ int fetch_free_index(struct super_block *superb){
 
 int set_inode_in_superblock(struct inode *i){
 	int free_idx = fetch_free_index(&superb);
+	if(!free_idx)
+		return -1;
 	superb.inodes[free_idx] = *i;
 	superb.bitmap_inodos[free_idx] = 1;
 	return free_idx;
@@ -38,17 +48,20 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	i.uid = getuid();
 	i.gid = getgid();
 	i.type = type;
-	i.nlink =
-	        (type == IS_FILE)
-	                ? 1
-	                : 2;  // Un archivo comienza con un link y un directorio con 2.
-	i.mode = mode;
-
-	strcpy(i.file_name, path);  // SACARLE LA / AL NAME
+	i.mode = (type == IS_FILE)?  __S_IFREG | 0644 : __S_IFDIR | 0755;  // Un archivo comienza con un link y un directorio con 2.
+	i.atime = time(NULL);
+	i.mtime = time(NULL);
+	i.ctime = time(NULL);
+	i.nlink = (type == IS_FILE)? 1: 2;  // Un archivo comienza con un link y un directorio con 2.
+	strcpy(i.file_name, obtenerUltimoElemento(path));  // SACARLE LA / AL NAME
 	strcpy(i.file_path, path);  // SACARLE LA / AL PATH
-	
+	strcpy(i.file_parent, "/"); // SACARLE LA / AL PARENT
+
 	int free_idx = set_inode_in_superblock(&i);
-	
+	if (free_idx < 0)
+		return free_idx;
+	memset(i.file_content, 0, sizeof(i.file_content)); // contenido vacío.
+
 	printf("[debug] create_inode_from_path POST CREACION - path: %s - mode: %d - type: %d  \n",
 	       superb.inodes[free_idx].file_name,
 	       superb.inodes[free_idx].mode,
@@ -56,13 +69,7 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	return 0;
 }
 
-const char* obtenerUltimoElemento(const char *path) {
-    char *ultimoElemento = strrchr(path, '/');
-    if (ultimoElemento != NULL) {
-        return ultimoElemento + 1; // Se suma 1 para no incluir el '/'
-    }
-    return path; // Si no hay '/', se devuelve la ruta completa
-}
+
 
 static int
 get_inode_index_from_path(const char *path)
@@ -74,18 +81,11 @@ get_inode_index_from_path(const char *path)
 	const char *buff = obtenerUltimoElemento(path);
 	printf("[debug] get_inode_index_from_path RESULTADO DE SPLIT: %s\n", buff);
 	
-/*
-	char* primer_dir = strtok(path, "/");
-	char* resto = strtok(NULL, "/");
-	printf("[debug] get_inode_index_from_path SPLIT DEL PATH: %s\n", path);
-	printf("primer_dir: %s\n", primer_dir);
-	printf("resto: %s\n", resto);*/
 
 	printf("[debug] get_inode_index_from_path - buscando el path \"%s\" en el super bloque\n", buff);
-	//int len_inodes = sizeof(superb.inodes)/sizeof(superb.inodes[0]);
 
 	for (int i = 0; i < MAX_INODES; i++) {
-		if (superb.bitmap_inodos[i] == 1 && strcmp(superb.inodes[i].file_name, path) == 0) { // bitmap == 1 para saber si accedemos algo valido
+		if (superb.bitmap_inodos[i] == 1 && strcmp(superb.inodes[i].file_name, buff) == 0) { // bitmap == 1 para saber si accedemos algo valido
 			printf("[debug] get_inode_index_from_path - matcheo el path \"%s\" con el inodo [%i] \n", buff, i);
 			return i;
 		}
@@ -111,15 +111,23 @@ fisopfs_getattr(const char *path, struct stat *st)
 	printf("[debug] fisopfs_getattr - encontró el path : %s en el indice: [%i]\n", path, index);
 
 	struct inode i = superb.inodes[index];
-	
+
+	st->st_dev = 0;
+	st->st_ino = index;
 	st->st_uid = i.uid;
+	printf("[debug] fisopfs_getattr - UID PASADO AL STAT %i\n", st->st_uid);
 	st->st_gid = i.gid;
+	printf("[debug] fisopfs_getattr - GID PASADO AL STAT %i\n", st->st_gid);
 	st->st_mode = i.mode;
+	printf("[debug] fisopfs_getattr - mode %i\n", st->st_mode);
+	printf("[debug] fisopfs_getattr - mode constant DIR:  %i\n", __S_IFDIR | 0755);
+	printf("[debug] fisopfs_getattr - mode constant FILE:  %i\n", __S_IFREG | 0644);
 	st->st_nlink = i.nlink;
+	printf("[debug] nlink: %li\n", st->st_nlink);
 	st->st_size = i.file_size;
 	st->st_atime = i.atime;
 	st->st_mtime = i.mtime;
-
+	st->st_ctime = i.ctime;
 
 	return 0;
 }
@@ -132,21 +140,30 @@ fisopfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t of
 	// Los directorios '.' y '..'
 	filler(buffer, ".", NULL, 0);
 	filler(buffer, "..", NULL, 0);
-
 	int index = get_inode_index_from_path(path);
-	if (index == -1) { 
-		printf("[debug] fisopfs_READDIR - path: \"%s\" Indice no encontrado \n", path); 
+	if ( index == -1) { 
+		printf("[debug] fisopfs_READDIR - path: \"%s\" Indice no encontrado \n", path);
+		errno = -ENOENT;
 		return -ENOENT;
  	}
+	struct inode dir_inode = superb.inodes[index];
 
-	//struct inode i = superb.inodes[index];
+	if (dir_inode.type != IS_DIR) {
+		fprintf(stderr, "[debug] Error readdir: %s\n", strerror(errno));
+		errno = ENOTDIR;
+		return -ENOTDIR;
+	}
+	// struct inode i = superb.inodes[index];
 	printf("[debug] fisopfs_readdir - a fillear: %s\n\n\n\n\n", path);
 	//filler(buffer, superb.inodes[1].file_path, NULL, 0);
 	
-	for (int j = 0; j < MAX_INODES; j++) { //TODO: esta medio sucio, se podria pedir el inode from path arriba y aca abajo chequear nomas
-		if (superb.bitmap_inodos[j] == 1 && strcmp(superb.inodes[j].file_path, path) == 0) {   // bitmap == 1 para saber si accedemos algo valido
-			printf("[debug] fisopfs_readdir - filleo match: %s == %s \n\n\n\n",superb.inodes[j].file_path, path);
-			filler(buffer, superb.inodes[j].file_path, NULL, 0);
+	for (int j = 0; j < MAX_INODES; j++) {
+		if (superb.bitmap_inodos[j] == 1 && strcmp(superb.inodes[j].file_parent, path) == 0) {   // bitmap == 1 para saber si accedemos algo valido
+			printf("[debug] fisopfs_readdir - filleo match=> dir: \"%s\" - parent: \"%s\" \n\n\n\n",superb.inodes[j].file_path, path);
+			filler(buffer, superb.inodes[j].file_name, NULL, 0);
+		}
+		else{
+			printf("[debug] fisopfs_readdir - NO MATCHEÓ: %s != %s \n\n\n\n",superb.inodes[j].file_path, path);
 		}
 	}
 
@@ -223,26 +240,22 @@ fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *file_info)
 }
 
 static int
-fisopfs_write(const char *path,
-              const char *buffer,
-              size_t size,
-              off_t offset,
-              struct fuse_file_info *fi)
-{
-	printf("[debug] fisopfs_write - path: %s\n", path);
+fisopfs_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
+	printf("\n\n\n\n [debug] fisopfs_write SIN IMPLEMENTAR- path: %s\n\n\n\n", path);
 	return 0;
 }
 
 static int
 fisopfs_utimens(const char *path, const struct timespec tv[2])
 {
-	printf("\n\n\n\n[debug] fisopfs_utimens NO IMPLEMENTADO!!! - path: %s\n\n\n\n", path);
+	printf("\n\n\n\n[debug] fisopfs_utimens NO IMPLEMENTADO!!! - path: %s", path);
 	int index = get_inode_index_from_path(path);
 	if (index == -1) {
-		printf("[debug] fisopfs_utimens - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n", path);
+		printf("[debug] fisopfs_utimens - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n\n\n\n\n", path);
 		return -ENOENT;
 	}
 
+	printf("[debug] fisopfs_utimens - actualiza los times del path: \"%s\" (INODO[%i]) \n\n\n\n\n", path, index);
 	struct inode i = superb.inodes[index];
 	i.atime = tv[0].tv_sec;
 	i.mtime = tv[1].tv_sec;
@@ -287,17 +300,23 @@ create_root()
 	printf("[debug] create_root - creating root\n");
 	
 	//create_inode_from_path("/", __S_IFDIR | 0755, IS_DIR);
+	memset(superb.inodes, 0, sizeof(superb.inodes));
+	memset(superb.bitmap_inodos, 0, sizeof(superb.bitmap_inodos));
 
 	static struct inode root;
-	root.file_size = 1024; // maximo tamaño estático por ahora.
-	root.uid = getuid();
+	root.file_size = MAX_CONTENT; // maximo tamaño estático por ahora.
+	root.uid = 1717;
 	root.gid = getgid();
 	root.type = IS_DIR;
 	root.nlink = (root.type == IS_FILE) ? 1 : 2;  // Un archivo comienza con un link y un directorio con 2.
 	root.mode = __S_IFDIR | 0755;
+	root.atime = time(NULL);
+	root.mtime = time(NULL);
+	root.ctime = time(NULL);
 
 	strcpy(root.file_name, "/");  // root se llama '/'
-	strcpy(root.file_path, "");  // vacío, ese es el path de root.
+	strcpy(root.file_path, ROOT); 
+	strcpy(root.file_parent, ""); 
 
 	superb.inodes[0] = root; // guardamos el root? TODO checkear en otra función si se guarda
 	superb.bitmap_inodos[0] = 1; // ocupado. TODO hacer constantes para ocupado desocupado.
@@ -310,33 +329,34 @@ fisopfs_init(struct fuse_conn_info *conn)
 {
 	printf("[debug] fisop_init - Starting init\n");
 
-	FILE *fs = fopen(fs_fisopfs, "r");
+	//FILE *fs = fopen(fs_fisopfs, "r");
+	void* fs = NULL;
 	if (!fs) {
 		// Si no existe el archivo, lo creamos
-		create_root();
+		create_root(); //esto todavia no crea el archivo
 	} else {
-		fread(&superb, sizeof(superb), 1, fs); 
-		fclose(fs);
+		// fread(&superb, sizeof(superb), 1, fs); 
+		// fclose(fs);
 	}
 
-	return conn;
+	return 0;
 }
 
 static struct fuse_operations operations = {
-	.getattr = fisopfs_getattr,
-	.readdir = fisopfs_readdir,
+	.getattr = fisopfs_getattr, //lista
+	.readdir = fisopfs_readdir, //está pero no anda
 	.read = fisopfs_read,
 
 	// new implementations
-	.create = fisopfs_create,
-	.mkdir = fisopfs_mkdir,
+	.create = fisopfs_create, //lista
+	.mkdir = fisopfs_mkdir, //lista
 	.write = fisopfs_write,
-	.utimens = fisopfs_utimens,
+	.utimens = fisopfs_utimens, //lista
 	.rmdir = fisopfs_rmdir,
 	.unlink = fisopfs_unlink,
-	.flush = fisopfs_flush,
-	.destroy = fisopfs_destroy,
-	.init = fisopfs_init,
+	.flush = fisopfs_flush, //lista
+	.destroy = fisopfs_destroy, //lista
+	.init = fisopfs_init, //lista
 };
 
 int
