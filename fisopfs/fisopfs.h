@@ -12,7 +12,7 @@
 
 #define MAX_PATH 100
 #define MAX_CONTENT 1024
-#define MAX_INODES 5
+#define MAX_INODES 10
 
 // Esta es la estructura principal para guardar un archivo en memoria.
 // Agregaremos lo necesario para que el filesystem funcione como esperamos.
