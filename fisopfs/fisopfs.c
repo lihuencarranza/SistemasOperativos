@@ -296,6 +296,7 @@ fisopfs_utimens(const char *path, const struct timespec tv[2])
 
 	return 0;
 }
+
 static int 
 fisopfs_truncate(const char *path, off_t size){
 	printf("[debug] fisopfs_truncate - path: %s\n", path);
@@ -316,6 +317,7 @@ fisopfs_truncate(const char *path, off_t size){
 	inode->mtime = time(NULL);
 	return 0;
 }
+
 static void
 fisopfs_destroy(void *private_data)
 {
@@ -381,14 +383,19 @@ fisopfs_init(struct fuse_conn_info *conn)
 {
 	printf("[debug] fisop_init - Starting init\n");
 
-	//FILE *fs = fopen(fs_fisopfs, "r");
-	void* fs = NULL;
+	FILE *fs = fopen(fs_fisopfs, "r");
 	if (!fs) {
 		// Si no existe el archivo, lo creamos
+		FILE *fs_new = fopen(fs_fisopfs, "w");
+		fclose(fs_new);
 		create_root(); //esto todavia no crea el archivo
 	} else {
-		// fread(&superb, sizeof(superb), 1, fs); 
-		// fclose(fs);
+		int bytes = fread(&superb, sizeof(superb), 1, fs);
+		if (bytes < 0){
+			printf("[debug] fisop_init - error reading fs\n");
+			return NULL;
+		}
+		fclose(fs);
 	}
 
 	return 0;
@@ -397,19 +404,19 @@ fisopfs_init(struct fuse_conn_info *conn)
 static struct fuse_operations operations = {
 	.getattr = fisopfs_getattr, //lista
 	.readdir = fisopfs_readdir, //lista
-	.read = fisopfs_read,
+	.read = fisopfs_read, //lista
 
 	// new implementations
 	.create = fisopfs_create, //lista
 	.mkdir = fisopfs_mkdir, //lista
-	.write = fisopfs_write,
+	.write = fisopfs_write, //lista
 	.utimens = fisopfs_utimens, //lista
 	.rmdir = fisopfs_rmdir,
 	.unlink = fisopfs_unlink,
 	.flush = fisopfs_flush, //lista
 	.destroy = fisopfs_destroy, //lista
 	.init = fisopfs_init, //lista
-	.truncate = fisopfs_truncate
+	.truncate = fisopfs_truncate //lista
 };
 
 int
