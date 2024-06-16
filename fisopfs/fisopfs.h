@@ -14,6 +14,15 @@
 #define MAX_CONTENT 1024
 #define MAX_INODES 10
 
+#define OCCUPIED 1
+#define FREE 0
+
+#define NO_PARENT ""
+
+#define MODE_WRITE "w"
+
+#define ROOT "/"
+
 // Esta es la estructura principal para guardar un archivo en memoria.
 // Agregaremos lo necesario para que el filesystem funcione como esperamos.
 //
@@ -26,9 +35,9 @@ typedef struct inode {
 	mode_t mode;       // Modo
 
 	time_t atime;  // Último acceso
-	time_t mtime;  // Última 
+	time_t mtime;  // Última
 	time_t ctime;  // Última modificación
-	
+
 
 	char file_name[MAX_PATH];  // Nombre del archivo/directorio. Si es root, es "/".
 	char file_parent[MAX_PATH];  // Path del directorio que lo contiene o path
