@@ -1,5 +1,7 @@
 #define FUSE_USE_VERSION 30
 #define ROOT "/"
+#define ROJO "\033[1;31m"
+#define RESET_COLOR "\033[0m"
 #include <fuse.h>
 #include "fisopfs.h"
 
@@ -53,7 +55,7 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	i.mtime = time(NULL);
 	i.ctime = time(NULL);
 	i.nlink = (type == IS_FILE)? 1: 2;  // Un archivo comienza con un link y un directorio con 2.
-	(type == IS_FILE)? memcpy(i.file_content, "CONTENIDO DEFAULT",16):NULL;
+	
 	strcpy(i.file_name, obtenerUltimoElemento(path));  // SACARLE LA / AL NAME
 	strcpy(i.file_path, path);  // SACARLE LA / AL PATH
 	strcpy(i.file_parent, "/"); // SACARLE LA / AL PARENT
@@ -239,11 +241,10 @@ fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *file_info)
 
 static int
 fisopfs_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
-	printf("\n\n\n\n \033[1;31m [debug] fisopfs_write SIN IMPLEMENTAR- path: %s\n\n\n\n", path);
-
+	printf(ROJO);
 	if(size + offset > MAX_CONTENT){
 		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n\n\n\n\n", path);
-		printf("\033[0m");
+		printf(RESET_COLOR);
 		errno = -ENOENT;
 		return -ENOENT;
 	}
@@ -251,16 +252,31 @@ fisopfs_write(const char *path, const char *buffer, size_t size, off_t offset, s
 	int index = get_inode_index_from_path(path);
 	if (index == -1) {
 		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n\n\n\n\n", path);
-		printf("\033[0m");
+		printf(RESET_COLOR);
 		errno = -ENOENT;
 		return -ENOENT;
 	}
 	
-	struct inode i = superb.inodes[index];
+	struct inode *i = &superb.inodes[index];
+	if (i->file_size < offset) {
+		fprintf(stderr, "[debug] Error write: %s\n", strerror(errno));
+		errno = EINVAL;
+		return -EINVAL;
+	}
+	if (i->type != IS_FILE) {
+		fprintf(stderr, "[debug] Error write: %s\n", strerror(errno));
+		errno = EACCES;
+		return -EACCES;
+	}
+	strncpy(i->file_content + offset, buffer, size);
+	i->atime = time(NULL);
+	i->mtime = time(NULL);
+	i->file_size = strlen(i->file_content);
+	i->file_content[i->file_size] = '\0';
 	printf(" [debug] fisopfs_write - ESTOY EN WRITE \n\n\n\n\n");
-
-	printf("\033[0m");
-	return 0;
+	printf(" file content: %s \n\n\n\n\n",i->file_content);
+	printf(RESET_COLOR);
+	return (int)size;
 }
 
 static int
