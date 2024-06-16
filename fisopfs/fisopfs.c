@@ -239,18 +239,27 @@ fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *file_info)
 
 static int
 fisopfs_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
-	printf("\n\n\n\n [debug] fisopfs_write SIN IMPLEMENTAR- path: %s\n\n\n\n", path);
+	printf("\n\n\n\n \033[1;31m [debug] fisopfs_write SIN IMPLEMENTAR- path: %s\n\n\n\n", path);
 
-	int index = get_inode_index_from_path(path);
-	if (index == -1) {
+	if(size + offset > MAX_CONTENT){
 		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n\n\n\n\n", path);
+		printf("\033[0m");
 		errno = -ENOENT;
 		return -ENOENT;
 	}
-
+	
+	int index = get_inode_index_from_path(path);
+	if (index == -1) {
+		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO ENCONTRAR INDICE \n\n\n\n\n", path);
+		printf("\033[0m");
+		errno = -ENOENT;
+		return -ENOENT;
+	}
+	
 	struct inode i = superb.inodes[index];
+	printf(" [debug] fisopfs_write - ESTOY EN WRITE \n\n\n\n\n");
 
-
+	printf("\033[0m");
 	return 0;
 }
 
@@ -271,7 +280,26 @@ fisopfs_utimens(const char *path, const struct timespec tv[2])
 
 	return 0;
 }
-
+static int 
+fisopfs_truncate(const char *path, off_t size){
+	printf("[debug] fisopfs_truncate - path: %s\n", path);
+	if (size > MAX_CONTENT)
+	{
+		fprintf(stderr, "[debug] Error truncate: %s\n", strerror(errno));
+		errno = EINVAL;
+		return -EINVAL;
+	}
+	int index = get_inode_index_from_path(path);
+	if (index < 0) {
+		fprintf(stderr, "[debug] Error truncate: %s\n", strerror(errno));
+		errno = ENOENT;
+		return -ENOENT;
+	}
+	struct inode *inode = &(superb.inodes[index]);
+	inode->file_size = size;
+	inode->mtime = time(NULL);
+	return 0;
+}
 static void
 fisopfs_destroy(void *private_data)
 {
@@ -365,6 +393,7 @@ static struct fuse_operations operations = {
 	.flush = fisopfs_flush, //lista
 	.destroy = fisopfs_destroy, //lista
 	.init = fisopfs_init, //lista
+	.truncate = fisopfs_truncate
 };
 
 int
