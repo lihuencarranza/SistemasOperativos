@@ -29,10 +29,12 @@ Un `inodo_t` es ls estructura que almacena la metadata asociada a un archivo o d
 
 ### Cómo el sistema de archivos encuentra un archivo específico dado un path
 
-En primer lugar, verifica que el `path` no es igual a la raíz (`ROOT`). Luego se utiliza la funcion `obtener_ultimo_elemento` para extraer el último componente del `path`, el cual corresponde al nombre del archivo o directorio que se busca. Se recorren todos los inodos del super bloque verificando si el inodo está ocupado y si el nombre del archivo (`file_name`) coincide con el nombre extraído. Sie encuentra el inodo que cumple con los criterios, devuelve su índice. De lo contrario, devuelve -1.
+En primer lugar, verifica que el `path` no es igual a la raíz (`ROOT`). Luego se utiliza la funcion `get_last_element()` para extraer el último componente del `path`, el cual corresponde al nombre del archivo o directorio que se busca. Se recorren todos los inodos del super bloque verificando si el inodo está ocupado y si el nombre del archivo (`file_name`) coincide con el nombre extraído. Sie encuentra el inodo que cumple con los criterios, devuelve su índice. De lo contrario, devuelve `ERROR` (una constante definida por nosotros con valos -1).
 
-### Todo tipo de estructuras auxiliares utilizadas
+###  Persistencia en disco
 
-### El formato de serialización del sistema de archivos en disco (ver siguiente sección)
+El super bloque y sus inodos se guardan en un archivo en el disco llamado `fs.fisopfs`. La función `create_root` inicializa el sistema de archivos y crea el directorio raíz:
+La función `fisopfs_destroy` se encarga de escribir el contenido del super bloque en el archivo de sistema de archivos en disco. Esto se realiza cuando se destruye el sistema de archivos, así nos aseguramos que todos los datos actuales se guardan.
+La función `fisopfs_flush` sincroniza los datos del sistema de archivos con el disco llamando a `fisopfs_destroy` para asegurarse de que todos los cambios se escriban en el archivo
 
-### Cualquier otra decisión/información que crean relevante
+
