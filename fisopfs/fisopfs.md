@@ -11,7 +11,9 @@ La estructura del `super_block_t` está compuesta de la siguiente manera:
 - Bitmap de Inodos: El superblock también incluye un bitmap (`bitmap_inodos`) que se utiliza para realizar un seguimiento de los inodos en uso y los inodos libres. Este bitmap facilita la asignación y liberación de inodos de manera eficiente.
 - Máximo Número de Inodos: La estructura superblock define el número máximo de inodos que puede contener el sistema de archivos (`MAX_INODES`), lo que ayuda a gestionar los recursos y prevenir desbordamientos.
 
-![super_block_t](https://github.com/fiubatps/sisop_2024a_g28/assets/86395729/390f922b-3fcb-449a-b4e1-33e08fa1753f)
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/86395729/c4947432-770d-4dcb-b65b-9c28a724d743)
+
+
 
 ![image](https://github.com/fiubatps/sisop_2024a_g28/assets/86395729/005fd3ed-cba3-453c-9925-f7e6e5253053)
 
@@ -24,7 +26,8 @@ Un `inodo_t` es ls estructura que almacena la metadata asociada a un archivo o d
 - Contenido: Almacena el contenido del archivo. Los directorios no utilizan este campo.
 - Hijos: Si el inode representa un directorio, contiene punteros a sus archivos y subdirectorios hijos (`children`).
   
-![image](https://github.com/fiubatps/sisop_2024a_g28/assets/86395729/6c4a1882-3de3-4859-b62e-6d7607f58796)
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/86395729/fa49cb5a-3aa7-4fb1-84e8-b3147e7c20ca)
+
 
 
 ### Cómo el sistema de archivos encuentra un archivo específico dado un path
