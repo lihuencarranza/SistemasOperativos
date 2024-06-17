@@ -1,25 +1,23 @@
 #define FUSE_USE_VERSION 30
-#define ROJO "\033[1;31m"
-#define RESET_COLOR "\033[0m"
 #include <fuse.h>
 #include "fisopfs.h"
 
 char fs_fisopfs[MAX_PATH] = "fs.fisopfs";
 
-struct super_block superb = {};
+super_block_t superb = {};
 
 const char *
 get_last_element(const char *path)
 {
-	char *ultimoElemento = strrchr(path, '/');
-	if (ultimoElemento != NULL) {
-		return ultimoElemento + 1;
+	char *last_element = strrchr(path, '/');
+	if (last_element != NULL) {
+		return last_element + 1;
 	}
 	return path;
 }
 
 int
-fetch_free_index(struct super_block *superb)
+fetch_free_index(super_block_t *superb)
 {
 	if (!superb)
 		return ERROR;
@@ -31,7 +29,7 @@ fetch_free_index(struct super_block *superb)
 }
 
 int
-set_inode_in_superblock(struct inode *i)
+set_inode_in_superblock(inode_t *i)
 {
 	int free_idx = fetch_free_index(&superb);
 	if (!free_idx)
@@ -63,7 +61,7 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	       mode,
 	       type);
 
-	static struct inode i;
+	static inode_t i;
 	i.file_size = 0;
 	i.uid = getuid();
 	i.gid = getgid();
@@ -117,7 +115,7 @@ fisopfs_getattr(const char *path, struct stat *st)
 		       path);
 		return -ENOENT;
 	}
-	struct inode i = superb.inodes[index];
+	inode_t i = superb.inodes[index];
 
 	st->st_dev = 0;
 	st->st_ino = index;
@@ -152,7 +150,7 @@ fisopfs_readdir(const char *path,
 		errno = -ENOENT;
 		return -ENOENT;
 	}
-	struct inode dir_inode = superb.inodes[index];
+	inode_t dir_inode = superb.inodes[index];
 
 	if (dir_inode.type != IS_DIR) {
 		fprintf(stderr, "[debug] Error readdir: %s\n", strerror(errno));
@@ -193,7 +191,7 @@ fisopfs_read(const char *path,
 		return -ENOENT;
 	}
 
-	struct inode i = superb.inodes[index];
+	inode_t i = superb.inodes[index];
 	if (offset >= i.file_size) {
 		return 0;
 	}
@@ -228,7 +226,7 @@ fisopfs_rmdir(const char *path)
 		       path);
 		return -ENOENT;
 	}
-	struct inode i = superb.inodes[index];
+	inode_t i = superb.inodes[index];
 	if (i.type != IS_DIR) {
 		fprintf(stderr, "[debug] Error rmdir: %s\n", strerror(errno));
 		errno = ENOTDIR;
@@ -261,7 +259,7 @@ fisopfs_unlink(const char *path)
 		return -ENOENT;
 	}
 
-	struct inode i = superb.inodes[index];
+	inode_t i = superb.inodes[index];
 	if (i.type != IS_FILE) {
 		fprintf(stderr, "[debug] Error unlink: %s\n", strerror(errno));
 		errno = EISDIR;
@@ -293,7 +291,6 @@ fisopfs_write(const char *path,
 		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO "
 		       "ENCONTRAR INDICE \n\n\n\n\n",
 		       path);
-		printf(RESET_COLOR);
 		errno = -ENOENT;
 		return -ENOENT;
 	}
@@ -303,12 +300,11 @@ fisopfs_write(const char *path,
 		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO "
 		       "ENCONTRAR INDICE \n\n\n\n\n",
 		       path);
-		printf(RESET_COLOR);
 		errno = -ENOENT;
 		return -ENOENT;
 	}
 
-	struct inode *i = &superb.inodes[index];
+	inode_t *i = &superb.inodes[index];
 	if (i->file_size < offset) {
 		fprintf(stderr, "[debug] Error write: %s\n", strerror(errno));
 		errno = EINVAL;
@@ -324,9 +320,6 @@ fisopfs_write(const char *path,
 	i->mtime = time(NULL);
 	i->file_size = strlen(i->file_content);
 	i->file_content[i->file_size] = '\0';
-	printf(" [debug] fisopfs_write - ESTOY EN WRITE \n\n\n\n\n");
-	printf(" file content: %s \n\n\n\n\n", i->file_content);
-	printf(RESET_COLOR);
 	return (int) size;
 }
 
@@ -363,7 +356,7 @@ fisopfs_truncate(const char *path, off_t size)
 		errno = ENOENT;
 		return -ENOENT;
 	}
-	struct inode *inode = &(superb.inodes[index]);
+	inode_t *inode = &(superb.inodes[index]);
 	inode->file_size = size;
 	inode->mtime = time(NULL);
 	return 0;
@@ -407,7 +400,7 @@ create_root()
 	memset(superb.inodes, 0, sizeof(superb.inodes));
 	memset(superb.bitmap_inodos, 0, sizeof(superb.bitmap_inodos));
 
-	static struct inode root;
+	static inode_t root;
 	root.file_size = MAX_CONTENT;
 	root.uid = 1717;
 	root.gid = getgid();

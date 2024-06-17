@@ -24,7 +24,6 @@ Un `inodo_t` es ls estructura que almacena la metadata asociada a un archivo o d
 - Tiempos: Incluye tiempos de acceso (`atime`), modificación (`mtime`) y cambio (`ctime`) para realizar un seguimiento de las operaciones realizadas en el archivo.
 - Rutas: Almacena el nombre del archivo o directorio (`file_name`), el path del directorio que lo contiene (`file_parent`) y el path completo (`file_path`). En el caso del root, se establece que no tiene padre con la constante `NO_PARENT` ("") y la ruta con la constante `ROOT` ("/").
 - Contenido: Almacena el contenido del archivo. Los directorios no utilizan este campo.
-- Hijos: Si el inode representa un directorio, contiene punteros a sus archivos y subdirectorios hijos (`children`).
   
 ![image](https://github.com/fiubatps/sisop_2024a_g28/assets/86395729/fa49cb5a-3aa7-4fb1-84e8-b3147e7c20ca)
 
@@ -49,4 +48,5 @@ Con eso corriendo, se puede utilizar otra instancia de la terminal para enviar c
 
 ### Pruebas funcionales
 Para probar el filesystem desarrollamos un script en python que utiliza las operaciones del sistema operativo para verificar su correcto funcionamiento.
+El script funciona con un mount point en un directorio llamado "prueba". Si se quiere cambiar el nombre, hay que cambiar la primera línea del script.
 Teniendo el fs corriendo como se indica en el apartado anterior, se puede utilizar `python3 test_funcional.py` para correr las pruebas de integración.
