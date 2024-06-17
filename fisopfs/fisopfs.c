@@ -9,7 +9,7 @@ char fs_fisopfs[MAX_PATH] = "fs.fisopfs";
 struct super_block superb = {};
 
 const char *
-obtenerUltimoElemento(const char *path)
+get_last_element(const char *path)
 {
 	char *ultimoElemento = strrchr(path, '/');
 	if (ultimoElemento != NULL) {
@@ -22,7 +22,7 @@ int
 fetch_free_index(struct super_block *superb)
 {
 	if (!superb)
-		return -1;
+		return ERROR;
 	int i = 0;
 	while (i < (MAX_INODES) && superb->bitmap_inodos[i] == OCCUPIED) {
 		i++;
@@ -35,7 +35,7 @@ set_inode_in_superblock(struct inode *i)
 {
 	int free_idx = fetch_free_index(&superb);
 	if (!free_idx)
-		return -1;
+		return ERROR;
 	superb.inodes[free_idx] = *i;
 	superb.bitmap_inodos[free_idx] = OCCUPIED;
 	return free_idx;
@@ -74,7 +74,7 @@ create_inode_from_path(const char *path, mode_t mode, int type)
 	i.ctime = time(NULL);
 	i.nlink = (type == IS_FILE) ? 1 : 2;
 
-	strcpy(i.file_name, obtenerUltimoElemento(path));
+	strcpy(i.file_name, get_last_element(path));
 	strcpy(i.file_path, path);
 	strcpy(i.file_parent, get_parent(path));
 
@@ -92,7 +92,7 @@ get_inode_index_from_path(const char *path)
 	if (strcmp(path, ROOT) == 0)
 		return 0;
 
-	const char *buff = obtenerUltimoElemento(path);
+	const char *buff = get_last_element(path);
 	for (int i = 0; i < MAX_INODES; i++) {
 		if (superb.bitmap_inodos[i] == OCCUPIED &&
 		    strcmp(superb.inodes[i].file_name, buff) ==
@@ -100,7 +100,7 @@ get_inode_index_from_path(const char *path)
 			return i;
 		}
 	}
-	return -1;
+	return ERROR;
 }
 
 static int
@@ -111,7 +111,7 @@ fisopfs_getattr(const char *path, struct stat *st)
 	memset(st, 0, sizeof(struct stat));
 
 	int index = get_inode_index_from_path(path);
-	if (index == -1) {
+	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_getattr - path: \"%s\" FALLÓ POR NO "
 		       "ENCONTRAR INDICE O ESTÁ VACÍO\n",
 		       path);
@@ -145,7 +145,7 @@ fisopfs_readdir(const char *path,
 	filler(buffer, ".", NULL, 0);
 	filler(buffer, "..", NULL, 0);
 	int index = get_inode_index_from_path(path);
-	if (index == -1) {
+	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_READDIR - path: \"%s\" Indice no "
 		       "encontrado \n",
 		       path);
@@ -165,8 +165,7 @@ fisopfs_readdir(const char *path,
 
 	for (int j = 0; j < MAX_INODES; j++) {
 		if (superb.bitmap_inodos[j] == OCCUPIED &&
-		    strcmp(superb.inodes[j].file_parent, path) ==
-		            0) {  // bitmap == 1 para saber si accedemos algo valido
+		    strcmp(superb.inodes[j].file_parent, path) == 0) {
 			filler(buffer, superb.inodes[j].file_name, NULL, 0);
 		} else {
 		}
@@ -187,7 +186,7 @@ fisopfs_read(const char *path,
 	       size);
 
 	int index = get_inode_index_from_path(path);
-	if (index == -1) {
+	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_read - path: \"%s\" FALLÓ POR NO "
 		       "ENCONTRAR INDICE \n",
 		       path);
@@ -214,7 +213,7 @@ fisopfs_read(const char *path,
 static int
 fisopfs_mkdir(const char *path, mode_t mode)
 {
-	printf("\n\n\n\n[debug] fisopfs_mkdir - path: %s - mode: %d \n", path, mode);
+	printf("[debug] fisopfs_mkdir - path: %s - mode: %d \n", path, mode);
 	return create_inode_from_path(path, mode, IS_DIR);
 }
 
@@ -223,7 +222,7 @@ fisopfs_rmdir(const char *path)
 {
 	printf("[debug] fisopfs_rmdir - path: %s\n", path);
 	int index = get_inode_index_from_path(path);
-	if (index == -1) {
+	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_rmdir - path: \"%s\" FALLÓ POR NO "
 		       "ENCONTRAR INDICE \n",
 		       path);
@@ -235,6 +234,17 @@ fisopfs_rmdir(const char *path)
 		errno = ENOTDIR;
 		return -ENOTDIR;
 	}
+
+	if (strcmp(path, ROOT) != 0) {
+		path++;
+	}
+
+	for (int j = 0; j < MAX_INODES; j++) {
+		if (superb.bitmap_inodos[j] == OCCUPIED &&
+		    strcmp(superb.inodes[j].file_parent, path) == 0) {
+			superb.bitmap_inodos[j] = FREE;
+		}
+	}
 	superb.bitmap_inodos[index] = FREE;
 	return 0;
 }
@@ -244,7 +254,7 @@ fisopfs_unlink(const char *path)
 {
 	printf("[debug] fisopfs_unlink - path: %s\n", path);
 	int index = get_inode_index_from_path(path);
-	if (index == -1) {
+	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_unlink - path: \"%s\" FALLÓ POR NO "
 		       "ENCONTRAR INDICE \n",
 		       path);
@@ -289,7 +299,7 @@ fisopfs_write(const char *path,
 	}
 
 	int index = get_inode_index_from_path(path);
-	if (index == -1) {
+	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO "
 		       "ENCONTRAR INDICE \n\n\n\n\n",
 		       path);
@@ -325,7 +335,7 @@ fisopfs_utimens(const char *path, const struct timespec tv[2])
 {
 	printf("[debug] fisopfs_utimens - path: %s", path);
 	int index = get_inode_index_from_path(path);
-	if (index == -1) {
+	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_utimens - path: \"%s\" FALLÓ POR NO "
 		       "ENCONTRAR INDICE\n",
 		       path);

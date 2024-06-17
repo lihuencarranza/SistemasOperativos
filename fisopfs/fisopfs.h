@@ -23,6 +23,9 @@
 
 #define ROOT "/"
 
+#define ERROR -1
+#define BAD_INDEX -1
+
 // Esta es la estructura principal para guardar un archivo en memoria.
 // Agregaremos lo necesario para que el filesystem funcione como esperamos.
 //
