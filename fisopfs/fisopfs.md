@@ -1,3 +1,40 @@
 # fisop-fs
 
-Lugar para respuestas en prosa y documentación del TP.
+## Decisiones de diseño
+
+### Las estructuras en memoria
+
+Desarrollamos un sistema de archivos basado en dos estructuras: `inodos`, donde cada archivo o directorio es representado por una estructura específica; un `super bloque`, el cual contiene todos los inodos del filesystem, un bitmap para gestionar su disponibilidad y la cantidad máxima de inodos.
+
+La estructura del `super_block_t` está compuesta de la siguiente manera:
+- Inodos: Un superblock contiene un vector de inodos (`inodes`), que representa todos los archivos y directorios en el sistema de archivos.
+- Bitmap de Inodos: El superblock también incluye un bitmap (`bitmap_inodos`) que se utiliza para realizar un seguimiento de los inodos en uso y los inodos libres. Este bitmap facilita la asignación y liberación de inodos de manera eficiente.
+- Máximo Número de Inodos: La estructura superblock define el número máximo de inodos que puede contener el sistema de archivos (`MAX_INODES`), lo que ayuda a gestionar los recursos y prevenir desbordamientos.
+
+![super_block_t](https://github.com/fiubatps/sisop_2024a_g28/assets/86395729/390f922b-3fcb-449a-b4e1-33e08fa1753f)
+
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/86395729/005fd3ed-cba3-453c-9925-f7e6e5253053)
+
+
+Un `inodo_t` es ls estructura que almacena la metadata asociada a un archivo o directorio. Cada inodo incluye la siguiente información clave:
+- Tamaño (`file_size`): Representa el tamaño del archivo. Para los directorios, se estableció que el tamaño sea 0 para simplificar la implementación.
+- Metadatos: tamaño del archivo (`file_size`), identificadores de usuario y grupo (`uid, gid`), tipo de archivo (`type`), número de enlaces (`nlink`), y permisos (`mode`).
+- Tiempos: Incluye tiempos de acceso (`atime`), modificación (`mtime`) y cambio (`ctime`) para realizar un seguimiento de las operaciones realizadas en el archivo.
+- Rutas: Almacena el nombre del archivo o directorio (`file_name`), el path del directorio que lo contiene (`file_parent`) y el path completo (`file_path`). En el caso del root, se establece que no tiene padre con la constante `NO_PARENT` ("") y la ruta con la constante `ROOT` ("/").
+- Contenido: Almacena el contenido del archivo. Los directorios no utilizan este campo.
+- Hijos: Si el inode representa un directorio, contiene punteros a sus archivos y subdirectorios hijos (`children`).
+  
+![image](https://github.com/fiubatps/sisop_2024a_g28/assets/86395729/6c4a1882-3de3-4859-b62e-6d7607f58796)
+
+
+### Cómo el sistema de archivos encuentra un archivo específico dado un path
+
+En primer lugar, verifica que el `path` no es igual a la raíz (`ROOT`). Luego se utiliza la funcion `get_last_element()` para extraer el último componente del `path`, el cual corresponde al nombre del archivo o directorio que se busca. Se recorren todos los inodos del super bloque verificando si el inodo está ocupado y si el nombre del archivo (`file_name`) coincide con el nombre extraído. Sie encuentra el inodo que cumple con los criterios, devuelve su índice. De lo contrario, devuelve `ERROR` (una constante definida por nosotros con valos -1).
+
+###  Persistencia en disco
+
+El super bloque y sus inodos se guardan en un archivo en el disco llamado `fs.fisopfs`. La función `create_root` inicializa el sistema de archivos y crea el directorio raíz:
+La función `fisopfs_destroy` se encarga de escribir el contenido del super bloque en el archivo de sistema de archivos en disco. Esto se realiza cuando se destruye el sistema de archivos, así nos aseguramos que todos los datos actuales se guardan.
+La función `fisopfs_flush` sincroniza los datos del sistema de archivos con el disco llamando a `fisopfs_destroy` para asegurarse de que todos los cambios se escriban en el archivo
+
+
