@@ -37,4 +37,13 @@ El super bloque y sus inodos se guardan en un archivo en el disco llamado `fs.fi
 La función `fisopfs_destroy` se encarga de escribir el contenido del super bloque en el archivo de sistema de archivos en disco. Esto se realiza cuando se destruye el sistema de archivos, así nos aseguramos que todos los datos actuales se guardan.
 La función `fisopfs_flush` sincroniza los datos del sistema de archivos con el disco llamando a `fisopfs_destroy` para asegurarse de que todos los cambios se escriban en el archivo
 
+## Correr el fs y pruebas
+### Montar el fs y utilizarlo
+Para correr el filesystem es necesario correrlo en modo debug ya que sino no queda corriendo y no se puede utilizar.
+Esto se logra con `./fisopfs -f <directorio_de_mount>`
 
+Con eso corriendo, se puede utilizar otra instancia de la terminal para enviar comandos como `mkdir`, `ls`, `echo`, `cat`, etc. 
+
+### Pruebas funcionales
+Para probar el filesystem desarrollamos un script en python que utiliza las operaciones del sistema operativo para verificar su correcto funcionamiento.
+Teniendo el fs corriendo como se indica en el apartado anterior, se puede utilizar `python3 test_funcional.py` para correr las pruebas de integración.
