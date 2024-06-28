@@ -50,3 +50,17 @@ Con eso corriendo, se puede utilizar otra instancia de la terminal para enviar c
 Para probar el filesystem desarrollamos un script en python que utiliza las operaciones del sistema operativo para verificar su correcto funcionamiento.
 El script funciona con un mount point en un directorio llamado "prueba". Si se quiere cambiar el nombre, hay que cambiar la primera línea del script.
 Teniendo el fs corriendo como se indica en el apartado anterior, se puede utilizar `python3 test_funcional.py` para correr las pruebas de integración.
+
+
+## CHALLENGE
+
+Las pruebas se ejecutan de la mismas manera. 
+
+``` bash
+make
+mkdir prueba
+./fisopfs -f prueba
+```
+
+En otra terminal ejecutar:
+`python3 test_funcional.py`
