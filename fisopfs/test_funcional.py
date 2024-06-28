@@ -198,6 +198,48 @@ def test_delete_dir_deletes_childrens():
   except Exception as e:
     print_msg("cross",e)
 
+
+# CHALLENGE
+
+def test_chmod_file():
+  try:
+    print("=== Prueba de cambio de permisos de archivo ===")
+    sanear_directorios()
+    route = MOUNT_POINT+"/archivo_prueba.txt"
+    f = open(route, 'w')
+    f.close()
+    os.chmod(route, 0o777)
+    if re.match(r"^-rwxrwxrwx", os.popen(f"ls -l {route}").read().split()[0]):
+      print_msg("tick", "Permisos de archivo se cambian exitosamente.")
+    else:
+      print_msg("cross", "No se cambiaron los permisos de archivo.")
+  except Exception as e:
+    print_msg("cross",e) 
+
+def test_chown_file():
+    try:
+        print("=== Prueba de cambio de propietario de archivo ===")
+        sanear_directorios()
+        route = os.path.join(MOUNT_POINT, "archivo_prueba.txt")
+        f = open(route, 'w')
+        f.close()
+        
+        # Cambia estos valores a los UID y GID de prueba que tengas disponibles
+        new_uid = 1001  # Reemplaza con un UID diferente de 1000
+        new_gid = 1001  # Reemplaza con un GID diferente de 1000
+        
+        os.chown(route, new_uid, new_gid)
+        output = os.popen(f"ls -l {route}").read().split()
+        if int(output[2]) == new_uid and int(output[3]) == new_gid:
+            print_msg("tick", "Propietario de archivo se cambia exitosamente.")
+        else:
+            print_msg("cross", "No se cambió el propietario de archivo.")
+    except Exception as e:
+        print_msg("cross", str(e))
+
+
+#
+
 if __name__ == "__main__":
   print("[[[[[ Pruebas de directorios ]]]]]")
   test_create_dir_in_root()
@@ -214,3 +256,7 @@ if __name__ == "__main__":
 
   print("\n\n[[[[[ Pruebas de archivos y directorios ]]]]]")
   test_delete_dir_deletes_childrens()
+  
+  print("\n\n[[[[[ Pruebas de permisos y propietarios ]]]]]")
+  test_chmod_file()
+  test_chown_file()

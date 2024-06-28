@@ -455,6 +455,11 @@ fisopfs_chmod(const char *path, mode_t mode)
 		       path);
 		return -ENOENT;
 	}
+	printf("[debug] fisopfs_chmod - path: %s - mode anterior: %d - mode "
+	       "nuevo: %d\n",
+	       path,
+	       superb.inodes[index].mode,
+	       mode);
 	superb.inodes[index].mode = mode;
 
 	return EXIT_SUCCESS;
@@ -474,6 +479,13 @@ fisopfs_chown(const char *path, uid_t uid, gid_t gid)
 		       path);
 		return -ENOENT;
 	}
+	printf("[debug] fisopfs_chown - path: %s - uid anterior: %d - uid "
+	       "nuevo: %d - gid anterior: %d - gid nuevo: %d\n",
+	       path,
+	       superb.inodes[index].uid,
+	       uid,
+	       superb.inodes[index].gid,
+	       gid);
 	superb.inodes[index].uid = uid;
 	superb.inodes[index].gid = gid;
 
