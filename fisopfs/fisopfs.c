@@ -443,21 +443,66 @@ fisopfs_init(struct fuse_conn_info *conn)
 	return 0;
 }
 
-static struct fuse_operations operations = { .getattr = fisopfs_getattr,
-	                                     .readdir = fisopfs_readdir,
-	                                     .read = fisopfs_read,
 
-	                                     // new implementations
-	                                     .create = fisopfs_create,
-	                                     .mkdir = fisopfs_mkdir,
-	                                     .write = fisopfs_write,
-	                                     .utimens = fisopfs_utimens,
-	                                     .rmdir = fisopfs_rmdir,
-	                                     .unlink = fisopfs_unlink,
-	                                     .flush = fisopfs_flush,
-	                                     .destroy = fisopfs_destroy,
-	                                     .init = fisopfs_init,
-	                                     .truncate = fisopfs_truncate };
+static int
+fisopfs_chmod(const char *path, mode_t mode)
+{
+	printf("[debug] fisopfs_chmod - path: %s - mode: %d\n", path, mode);
+	int index = get_inode_index_from_path(path);
+	if (index == BAD_INDEX) {
+		printf("[debug] fisopfs_chmod - path: \"%s\" FALLÓ POR NO "
+		       "ENCONTRAR INDICE \n",
+		       path);
+		return -ENOENT;
+	}
+	superb.inodes[index].mode = mode;
+
+	return EXIT_SUCCESS;
+}
+
+static int
+fisopfs_chown(const char *path, uid_t uid, gid_t gid)
+{
+	printf("[debug] fisopfs_chown - path: %s - uid: %d - gid: %d\n",
+	       path,
+	       uid,
+	       gid);
+	int index = get_inode_index_from_path(path);
+	if (index == BAD_INDEX) {
+		printf("[debug] fisopfs_chown - path: \"%s\" FALLÓ POR NO "
+		       "ENCONTRAR INDICE \n",
+		       path);
+		return -ENOENT;
+	}
+	superb.inodes[index].uid = uid;
+	superb.inodes[index].gid = gid;
+
+	return EXIT_SUCCESS;
+}
+
+
+static struct fuse_operations operations = {
+	.getattr = fisopfs_getattr,
+	.readdir = fisopfs_readdir,
+	.read = fisopfs_read,
+
+	// new implementations
+	.create = fisopfs_create,
+	.mkdir = fisopfs_mkdir,
+	.write = fisopfs_write,
+	.utimens = fisopfs_utimens,
+	.rmdir = fisopfs_rmdir,
+	.unlink = fisopfs_unlink,
+	.flush = fisopfs_flush,
+	.destroy = fisopfs_destroy,
+	.init = fisopfs_init,
+	.truncate = fisopfs_truncate,
+
+	// challenges
+	.chmod = fisopfs_chmod,
+	.chown = fisopfs_chown,
+};
+
 
 int
 main(int argc, char *argv[])
