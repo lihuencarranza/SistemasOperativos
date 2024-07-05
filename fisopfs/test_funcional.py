@@ -237,6 +237,23 @@ def test_chown_file():
     except Exception as e:
         print_msg("cross", str(e))
 
+def test_list_files_in_dir():
+  try:
+    print("=== Prueba de listar archivos en directorio ===")
+    sanear_directorios()
+    dir_route = MOUNT_POINT+"/directorio_prueba"
+    os.mkdir(dir_route)
+    file_names = ["archivo1.txt", "archivo2.txt", "archivo3.txt"]
+    for file_name in file_names:
+      f = open(dir_route + "/" + file_name, 'w')
+      f.close()
+    listed_files = os.listdir(dir_route)
+    if sorted(file_names) == sorted(listed_files):
+      print_msg("tick", "Archivos se listan exitosamente en el directorio.")
+    else:
+      print_msg("cross", "No se listaron todos los archivos en el directorio.")
+  except Exception as e:
+    print_msg("cross", e)
 
 #
 
@@ -260,3 +277,4 @@ if __name__ == "__main__":
   print("\n\n[[[[[ Pruebas de permisos y propietarios ]]]]]")
   test_chmod_file()
   test_chown_file()
+  test_list_files_in_dir()

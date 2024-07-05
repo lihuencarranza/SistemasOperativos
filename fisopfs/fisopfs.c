@@ -254,20 +254,27 @@ fisopfs_unlink(const char *path)
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_unlink - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE \n",
+		       "ENCONTRAR INDICE\n",
 		       path);
 		return -ENOENT;
 	}
 
-	inode_t i = superb.inodes[index];
-	if (i.type != IS_FILE) {
+	inode_t *inode = &superb.inodes[index];
+	if (inode->type != IS_FILE) {
 		fprintf(stderr, "[debug] Error unlink: %s\n", strerror(errno));
 		errno = EISDIR;
 		return -EISDIR;
 	}
-	superb.bitmap_inodos[index] = FREE;
+
+	inode->nlink--;
+
+	if (inode->nlink == 0) {
+		superb.bitmap_inodos[index] = FREE;
+	}
+
 	return 0;
 }
+
 
 static int
 fisopfs_create(const char *path, mode_t mode, struct fuse_file_info *file_info)
@@ -493,6 +500,47 @@ fisopfs_chown(const char *path, uid_t uid, gid_t gid)
 }
 
 
+static int
+fisopfs_link(const char *from, const char *to)
+{
+	printf("[debug] fisopfs_link - from: %s - to: %s\n", from, to);
+	int from_idx = get_inode_index_from_path(from);
+	if (from_idx == BAD_INDEX) {
+		printf("[debug] fisopfs_link - from: \"%s\" FALLÓ POR NO "
+		       "ENCONTRAR INDICE\n",
+		       from);
+		return -ENOENT;
+	}
+
+	inode_t *inode_from = &superb.inodes[from_idx];
+	if (inode_from->type != IS_FILE) {
+		printf("[debug] fisopfs_link - from: \"%s\" NO ES UN ARCHIVO\n",
+		       from);
+		return -EPERM;
+	}
+
+	int to_idx = get_inode_index_from_path(to);
+	if (to_idx != BAD_INDEX) {
+		printf("[debug] fisopfs_link - to: \"%s\" YA EXISTE\n", to);
+		return -EEXIST;
+	}
+
+	inode_from->nlink++;
+
+	inode_t new_inode = *inode_from;
+	strcpy(new_inode.file_name, get_last_element(to));
+	strcpy(new_inode.file_path, to);
+	strcpy(new_inode.file_parent, get_parent(to));
+
+	int new_idx = set_inode_in_superblock(&new_inode);
+	if (new_idx < 0) {
+		return new_idx;
+	}
+
+	return 0;
+}
+
+
 static struct fuse_operations operations = {
 	.getattr = fisopfs_getattr,
 	.readdir = fisopfs_readdir,
@@ -513,6 +561,7 @@ static struct fuse_operations operations = {
 	// challenges
 	.chmod = fisopfs_chmod,
 	.chown = fisopfs_chown,
+	.link = fisopfs_link,
 };
 
 
