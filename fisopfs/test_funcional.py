@@ -274,7 +274,12 @@ if __name__ == "__main__":
   print("\n\n[[[[[ Pruebas de archivos y directorios ]]]]]")
   test_delete_dir_deletes_childrens()
   
+  print("\n\n[[[[[ CHANLLENGE ]]]]]")
+  
+  
   print("\n\n[[[[[ Pruebas de permisos y propietarios ]]]]]")
   test_chmod_file()
   test_chown_file()
+  
+  print("\n\n[[[[[ Pruebas de listado de archivos ]]]]]")
   test_list_files_in_dir()
