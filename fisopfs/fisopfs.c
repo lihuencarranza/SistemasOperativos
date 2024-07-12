@@ -32,8 +32,18 @@ int
 set_inode_in_superblock(inode_t *i)
 {
 	int free_idx = fetch_free_index(&superb);
-	if (!free_idx)
+	if (free_idx == ERROR)
 		return ERROR;
+
+	for (int j = 0; j < MAX_INODES; j++) {
+		if (superb.bitmap_inodos[j] == OCCUPIED &&
+		    strcmp(superb.inodes[j].file_name, i->file_name) == 0 &&
+		    strcmp(superb.inodes[j].file_parent, i->file_parent) == 0) {
+			superb.inodes[j].nlink++;
+			return j;
+		}
+	}
+
 	superb.inodes[free_idx] = *i;
 	superb.bitmap_inodos[free_idx] = OCCUPIED;
 	return free_idx;
@@ -262,14 +272,13 @@ fisopfs_unlink(const char *path)
 	inode_t *inode = &superb.inodes[index];
 	if (inode->type != IS_FILE) {
 		fprintf(stderr, "[debug] Error unlink: %s\n", strerror(errno));
-		errno = EISDIR;
 		return -EISDIR;
 	}
 
 	inode->nlink--;
-
 	if (inode->nlink == 0) {
 		superb.bitmap_inodos[index] = FREE;
+		memset(inode, 0, sizeof(inode_t));
 	}
 
 	return 0;
@@ -289,44 +298,57 @@ fisopfs_write(const char *path,
               size_t size,
               off_t offset,
               struct fuse_file_info *fi)
+
 {
 	printf("[debug] fisopfs_write - path: %s - size: %lu - offset: %lu\n",
 	       path,
 	       size,
 	       offset);
+
 	if (size + offset > MAX_CONTENT) {
-		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE \n\n\n\n\n",
+		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR EXCESO "
+		       "DE TAMAÑO\n",
 		       path);
-		errno = -ENOENT;
 		return -ENOENT;
 	}
 
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE \n\n\n\n\n",
+		       "ENCONTRAR INDICE \n",
 		       path);
-		errno = -ENOENT;
 		return -ENOENT;
 	}
 
 	inode_t *i = &superb.inodes[index];
 	if (i->file_size < offset) {
 		fprintf(stderr, "[debug] Error write: %s\n", strerror(errno));
-		errno = EINVAL;
 		return -EINVAL;
 	}
 	if (i->type != IS_FILE) {
 		fprintf(stderr, "[debug] Error write: %s\n", strerror(errno));
-		errno = EACCES;
 		return -EACCES;
 	}
+
 	strncpy(i->file_content + offset, buffer, size);
 	i->atime = time(NULL);
 	i->mtime = time(NULL);
-	i->file_size = strlen(i->file_content);
+	i->file_size = offset + size;
 	i->file_content[i->file_size] = '\0';
+
+	for (int j = 0; j < MAX_INODES; j++) {
+		if (superb.bitmap_inodos[j] == OCCUPIED &&
+		    superb.inodes[j].nlink > 1 &&
+		    strcmp(superb.inodes[j].file_content, i->file_content) != 0) {
+			strncpy(superb.inodes[j].file_content,
+			        i->file_content,
+			        MAX_CONTENT);
+			superb.inodes[j].file_size = i->file_size;
+			superb.inodes[j].atime = i->atime;
+			superb.inodes[j].mtime = i->mtime;
+		}
+	}
+
 	return (int) size;
 }
 
@@ -454,35 +476,40 @@ fisopfs_init(struct fuse_conn_info *conn)
 static int
 fisopfs_chmod(const char *path, mode_t mode)
 {
-	printf("[debug] fisopfs_chmod - path: %s - mode: %o\n", path, mode);
+	printf("[debug] fisopfs_chmod - path: %s - mode: %d\n", path, mode);
+
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_chmod - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE \n",
+		       "ENCONTRAR INDICE\n",
 		       path);
 		return -ENOENT;
 	}
 
-	if (superb.inodes[index].mode & S_IWUSR) {
-		printf("[debug] fisopfs_chmod - path: %s - Modo de archivo "
-		       "antes de cambiar: %o\n",
-		       path,
-		       superb.inodes[index].mode);
-		superb.inodes[index].mode =
-		        (superb.inodes[index].mode & ~S_IRWXU) | (mode & S_IRWXU);
-
-		printf("[debug] fisopfs_chmod - path: %s - Modo actualizado: "
-		       "%o\n",
-		       path,
-		       superb.inodes[index].mode);
-	} else {
-		printf("[debug] fisopfs_chmod - path: %s - No se puede "
-		       "escribir en un archivo de solo lectura.\n",
+	inode_t *inode = &superb.inodes[index];
+	if (inode->type != IS_FILE) {
+		printf("[debug] fisopfs_chmod - path: \"%s\" NO ES UN "
+		       "ARCHIVO\n",
 		       path);
-		return -EACCES;
+		return -EPERM;
 	}
 
-	return EXIT_SUCCESS;
+	if ((inode->mode & S_IWUSR) == 0 && (mode & S_IWUSR) != 0) {
+		printf("[debug] fisopfs_chmod - path: \"%s\" NO SE PUEDE HACER "
+		       "ESCRIBIBLE\n",
+		       path);
+		return -EPERM;
+	}
+
+	inode->mode = (inode->mode & ~(S_IRWXU | S_IRWXG | S_IRWXO)) |
+	              (mode & (S_IRWXU | S_IRWXG | S_IRWXO));
+	printf("[debug] fisopfs_chmod - path: %s - mode anterior: %o - mode "
+	       "nuevo: %o\n",
+	       path,
+	       inode->mode,
+	       mode);
+
+	return 0;
 }
 
 static int
@@ -492,24 +519,35 @@ fisopfs_chown(const char *path, uid_t uid, gid_t gid)
 	       path,
 	       uid,
 	       gid);
+
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_chown - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE \n",
+		       "ENCONTRAR INDICE\n",
 		       path);
 		return -ENOENT;
 	}
+
+	inode_t *inode = &superb.inodes[index];
+	if (inode->type != IS_FILE) {
+		printf("[debug] fisopfs_chown - path: \"%s\" NO ES UN "
+		       "ARCHIVO\n",
+		       path);
+		return -EPERM;
+	}
+
+	inode->uid = uid;
+	inode->gid = gid;
+
 	printf("[debug] fisopfs_chown - path: %s - uid anterior: %d - uid "
 	       "nuevo: %d - gid anterior: %d - gid nuevo: %d\n",
 	       path,
-	       superb.inodes[index].uid,
+	       inode->uid,
 	       uid,
-	       superb.inodes[index].gid,
+	       inode->gid,
 	       gid);
-	superb.inodes[index].uid = uid;
-	superb.inodes[index].gid = gid;
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 
@@ -540,10 +578,22 @@ fisopfs_link(const char *from, const char *to)
 
 	inode_from->nlink++;
 
+	inode_t new_inode = *inode_from;
 	strcpy(superb.inodes[from_idx].file_name, get_last_element(to));
 	strcpy(superb.inodes[from_idx].file_path, to);
 	strcpy(superb.inodes[from_idx].file_parent, get_parent(to));
 
+	int new_idx = set_inode_in_superblock(&new_inode);
+	if (new_idx < 0)
+		return new_idx;
+
+	superb.inodes[new_idx] = new_inode;
+	superb.bitmap_inodos[new_idx] = OCCUPIED;
+
+	printf("[debug] fisopfs_link - hard link creado exitosamente - "
+	       "from_idx: %d - new_idx: %d\n",
+	       from_idx,
+	       new_idx);
 	superb.bitmap_inodos[from_idx] = OCCUPIED;
 
 	return 0;
