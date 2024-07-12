@@ -280,6 +280,9 @@ def test_create_hard_link():
 #
 
 if __name__ == "__main__":
+  
+  sanear_directorios()
+  
   print("[[[[[ Pruebas de directorios ]]]]]")
   test_create_dir_in_root()
   test_delete_dir_in_root()

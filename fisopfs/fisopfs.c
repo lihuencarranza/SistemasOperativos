@@ -477,21 +477,39 @@ static int
 fisopfs_chmod(const char *path, mode_t mode)
 {
 	printf("[debug] fisopfs_chmod - path: %s - mode: %d\n", path, mode);
+
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_chmod - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE \n",
+		       "ENCONTRAR INDICE\n",
 		       path);
 		return -ENOENT;
 	}
-	printf("[debug] fisopfs_chmod - path: %s - mode anterior: %d - mode "
-	       "nuevo: %d\n",
-	       path,
-	       superb.inodes[index].mode,
-	       mode);
-	superb.inodes[index].mode = mode;
 
-	return EXIT_SUCCESS;
+	inode_t *inode = &superb.inodes[index];
+	if (inode->type != IS_FILE) {
+		printf("[debug] fisopfs_chmod - path: \"%s\" NO ES UN "
+		       "ARCHIVO\n",
+		       path);
+		return -EPERM;
+	}
+
+	if ((inode->mode & S_IWUSR) == 0 && (mode & S_IWUSR) != 0) {
+		printf("[debug] fisopfs_chmod - path: \"%s\" NO SE PUEDE HACER "
+		       "ESCRIBIBLE\n",
+		       path);
+		return -EPERM;
+	}
+
+	inode->mode = (inode->mode & ~(S_IRWXU | S_IRWXG | S_IRWXO)) |
+	              (mode & (S_IRWXU | S_IRWXG | S_IRWXO));
+	printf("[debug] fisopfs_chmod - path: %s - mode anterior: %o - mode "
+	       "nuevo: %o\n",
+	       path,
+	       inode->mode,
+	       mode);
+
+	return 0;
 }
 
 static int
@@ -501,24 +519,35 @@ fisopfs_chown(const char *path, uid_t uid, gid_t gid)
 	       path,
 	       uid,
 	       gid);
+
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_chown - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE \n",
+		       "ENCONTRAR INDICE\n",
 		       path);
 		return -ENOENT;
 	}
+
+	inode_t *inode = &superb.inodes[index];
+	if (inode->type != IS_FILE) {
+		printf("[debug] fisopfs_chown - path: \"%s\" NO ES UN "
+		       "ARCHIVO\n",
+		       path);
+		return -EPERM;
+	}
+
+	inode->uid = uid;
+	inode->gid = gid;
+
 	printf("[debug] fisopfs_chown - path: %s - uid anterior: %d - uid "
 	       "nuevo: %d - gid anterior: %d - gid nuevo: %d\n",
 	       path,
-	       superb.inodes[index].uid,
+	       inode->uid,
 	       uid,
-	       superb.inodes[index].gid,
+	       inode->gid,
 	       gid);
-	superb.inodes[index].uid = uid;
-	superb.inodes[index].gid = gid;
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 
