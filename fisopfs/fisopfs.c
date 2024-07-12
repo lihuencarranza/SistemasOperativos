@@ -455,30 +455,34 @@ static int
 fisopfs_chmod(const char *path, mode_t mode)
 {
 	printf("[debug] fisopfs_chmod - path: %s - mode: %o\n", path, mode);
-    int index = get_inode_index_from_path(path);
-    if (index == BAD_INDEX) {
-        printf("[debug] fisopfs_chmod - path: \"%s\" FALLÓ POR NO "
-               "ENCONTRAR INDICE \n",
-               path);
-        return -ENOENT;
-    }
+	int index = get_inode_index_from_path(path);
+	if (index == BAD_INDEX) {
+		printf("[debug] fisopfs_chmod - path: \"%s\" FALLÓ POR NO "
+		       "ENCONTRAR INDICE \n",
+		       path);
+		return -ENOENT;
+	}
 
-    if (superb.inodes[index].mode & S_IWUSR) {
-        printf("[debug] fisopfs_chmod - path: %s - Modo de archivo antes de cambiar: %o\n",
-               path,
-               superb.inodes[index].mode);
-        superb.inodes[index].mode = (superb.inodes[index].mode & ~S_IRWXU) | (mode & S_IRWXU);
+	if (superb.inodes[index].mode & S_IWUSR) {
+		printf("[debug] fisopfs_chmod - path: %s - Modo de archivo "
+		       "antes de cambiar: %o\n",
+		       path,
+		       superb.inodes[index].mode);
+		superb.inodes[index].mode =
+		        (superb.inodes[index].mode & ~S_IRWXU) | (mode & S_IRWXU);
 
-        printf("[debug] fisopfs_chmod - path: %s - Modo actualizado: %o\n",
-               path,
-               superb.inodes[index].mode);
-    } else {
-        printf("[debug] fisopfs_chmod - path: %s - No se puede escribir en un archivo de solo lectura.\n",
-               path);
-        return -EACCES; 
-    }
+		printf("[debug] fisopfs_chmod - path: %s - Modo actualizado: "
+		       "%o\n",
+		       path,
+		       superb.inodes[index].mode);
+	} else {
+		printf("[debug] fisopfs_chmod - path: %s - No se puede "
+		       "escribir en un archivo de solo lectura.\n",
+		       path);
+		return -EACCES;
+	}
 
-    return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }
 
 static int
