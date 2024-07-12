@@ -454,7 +454,7 @@ fisopfs_init(struct fuse_conn_info *conn)
 static int
 fisopfs_chmod(const char *path, mode_t mode)
 {
-	printf("[debug] fisopfs_chmod - path: %s - mode: %d\n", path, mode);
+	printf("[debug] fisopfs_chmod - path: %s - mode: %o\n", path, mode);
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_chmod - path: \"%s\" FALLÓ POR NO "
@@ -462,12 +462,25 @@ fisopfs_chmod(const char *path, mode_t mode)
 		       path);
 		return -ENOENT;
 	}
-	printf("[debug] fisopfs_chmod - path: %s - mode anterior: %d - mode "
-	       "nuevo: %d\n",
-	       path,
-	       superb.inodes[index].mode,
-	       mode);
-	superb.inodes[index].mode = mode;
+
+	if (superb.inodes[index].mode & S_IWUSR) {
+		printf("[debug] fisopfs_chmod - path: %s - Modo de archivo "
+		       "antes de cambiar: %o\n",
+		       path,
+		       superb.inodes[index].mode);
+		superb.inodes[index].mode =
+		        (superb.inodes[index].mode & ~S_IRWXU) | (mode & S_IRWXU);
+
+		printf("[debug] fisopfs_chmod - path: %s - Modo actualizado: "
+		       "%o\n",
+		       path,
+		       superb.inodes[index].mode);
+	} else {
+		printf("[debug] fisopfs_chmod - path: %s - No se puede "
+		       "escribir en un archivo de solo lectura.\n",
+		       path);
+		return -EACCES;
+	}
 
 	return EXIT_SUCCESS;
 }
