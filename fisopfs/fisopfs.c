@@ -32,8 +32,18 @@ int
 set_inode_in_superblock(inode_t *i)
 {
 	int free_idx = fetch_free_index(&superb);
-	if (!free_idx)
+	if (free_idx == ERROR)
 		return ERROR;
+
+	for (int j = 0; j < MAX_INODES; j++) {
+		if (superb.bitmap_inodos[j] == OCCUPIED &&
+		    strcmp(superb.inodes[j].file_name, i->file_name) == 0 &&
+		    strcmp(superb.inodes[j].file_parent, i->file_parent) == 0) {
+			superb.inodes[j].nlink++;
+			return j;
+		}
+	}
+
 	superb.inodes[free_idx] = *i;
 	superb.bitmap_inodos[free_idx] = OCCUPIED;
 	return free_idx;
@@ -262,14 +272,13 @@ fisopfs_unlink(const char *path)
 	inode_t *inode = &superb.inodes[index];
 	if (inode->type != IS_FILE) {
 		fprintf(stderr, "[debug] Error unlink: %s\n", strerror(errno));
-		errno = EISDIR;
 		return -EISDIR;
 	}
 
 	inode->nlink--;
-
 	if (inode->nlink == 0) {
 		superb.bitmap_inodos[index] = FREE;
+		memset(inode, 0, sizeof(inode_t));
 	}
 
 	return 0;
@@ -289,44 +298,57 @@ fisopfs_write(const char *path,
               size_t size,
               off_t offset,
               struct fuse_file_info *fi)
+
 {
 	printf("[debug] fisopfs_write - path: %s - size: %lu - offset: %lu\n",
 	       path,
 	       size,
 	       offset);
+
 	if (size + offset > MAX_CONTENT) {
-		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE \n\n\n\n\n",
+		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR EXCESO "
+		       "DE TAMAÑO\n",
 		       path);
-		errno = -ENOENT;
 		return -ENOENT;
 	}
 
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_write - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE \n\n\n\n\n",
+		       "ENCONTRAR INDICE \n",
 		       path);
-		errno = -ENOENT;
 		return -ENOENT;
 	}
 
 	inode_t *i = &superb.inodes[index];
 	if (i->file_size < offset) {
 		fprintf(stderr, "[debug] Error write: %s\n", strerror(errno));
-		errno = EINVAL;
 		return -EINVAL;
 	}
 	if (i->type != IS_FILE) {
 		fprintf(stderr, "[debug] Error write: %s\n", strerror(errno));
-		errno = EACCES;
 		return -EACCES;
 	}
+
 	strncpy(i->file_content + offset, buffer, size);
 	i->atime = time(NULL);
 	i->mtime = time(NULL);
-	i->file_size = strlen(i->file_content);
+	i->file_size = offset + size;
 	i->file_content[i->file_size] = '\0';
+
+	for (int j = 0; j < MAX_INODES; j++) {
+		if (superb.bitmap_inodos[j] == OCCUPIED &&
+		    superb.inodes[j].nlink > 1 &&
+		    strcmp(superb.inodes[j].file_content, i->file_content) != 0) {
+			strncpy(superb.inodes[j].file_content,
+			        i->file_content,
+			        MAX_CONTENT);
+			superb.inodes[j].file_size = i->file_size;
+			superb.inodes[j].atime = i->atime;
+			superb.inodes[j].mtime = i->mtime;
+		}
+	}
+
 	return (int) size;
 }
 
