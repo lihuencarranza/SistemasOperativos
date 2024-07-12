@@ -472,44 +472,48 @@ fisopfs_init(struct fuse_conn_info *conn)
 	return 0;
 }
 
+// This function checks if the user has the required permissions to perform an
+// operation on a file or directory.
+static int
+has_permission(const inode_t *inode, int mask)
+{
+	uid_t uid = getuid();
+	gid_t gid = getgid();
+
+	if (uid == 0) {
+		return 1;
+	}
+
+	if (uid == inode->uid) {
+		return (inode->mode & mask) == mask;
+	}
+
+	if (gid == inode->gid) {
+		return (inode->mode & (mask >> 3)) == (mask >> 3);
+	}
+
+	return (inode->mode & (mask >> 6)) == (mask >> 6);
+}
 
 static int
 fisopfs_chmod(const char *path, mode_t mode)
 {
 	printf("[debug] fisopfs_chmod - path: %s - mode: %d\n", path, mode);
-
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_chmod - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE\n",
+		       "ENCONTRAR INDICE \n",
 		       path);
 		return -ENOENT;
 	}
-
-	inode_t *inode = &superb.inodes[index];
-	if (inode->type != IS_FILE) {
-		printf("[debug] fisopfs_chmod - path: \"%s\" NO ES UN "
-		       "ARCHIVO\n",
-		       path);
-		return -EPERM;
-	}
-
-	if ((inode->mode & S_IWUSR) == 0 && (mode & S_IWUSR) != 0) {
-		printf("[debug] fisopfs_chmod - path: \"%s\" NO SE PUEDE HACER "
-		       "ESCRIBIBLE\n",
-		       path);
-		return -EPERM;
-	}
-
-	inode->mode = (inode->mode & ~(S_IRWXU | S_IRWXG | S_IRWXO)) |
-	              (mode & (S_IRWXU | S_IRWXG | S_IRWXO));
-	printf("[debug] fisopfs_chmod - path: %s - mode anterior: %o - mode "
-	       "nuevo: %o\n",
+	printf("[debug] fisopfs_chmod - path: %s - mode anterior: %d - mode "
+	       "nuevo: %d\n",
 	       path,
-	       inode->mode,
+	       superb.inodes[index].mode,
 	       mode);
+	superb.inodes[index].mode = mode;
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 static int
@@ -519,35 +523,24 @@ fisopfs_chown(const char *path, uid_t uid, gid_t gid)
 	       path,
 	       uid,
 	       gid);
-
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_chown - path: \"%s\" FALLÓ POR NO "
-		       "ENCONTRAR INDICE\n",
+		       "ENCONTRAR INDICE \n",
 		       path);
 		return -ENOENT;
 	}
-
-	inode_t *inode = &superb.inodes[index];
-	if (inode->type != IS_FILE) {
-		printf("[debug] fisopfs_chown - path: \"%s\" NO ES UN "
-		       "ARCHIVO\n",
-		       path);
-		return -EPERM;
-	}
-
-	inode->uid = uid;
-	inode->gid = gid;
-
 	printf("[debug] fisopfs_chown - path: %s - uid anterior: %d - uid "
 	       "nuevo: %d - gid anterior: %d - gid nuevo: %d\n",
 	       path,
-	       inode->uid,
+	       superb.inodes[index].uid,
 	       uid,
-	       inode->gid,
+	       superb.inodes[index].gid,
 	       gid);
+	superb.inodes[index].uid = uid;
+	superb.inodes[index].gid = gid;
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 
