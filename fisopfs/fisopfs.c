@@ -579,9 +579,9 @@ fisopfs_link(const char *from, const char *to)
 	inode_from->nlink++;
 
 	inode_t new_inode = *inode_from;
-	strcpy(new_inode.file_name, get_last_element(to));
-	strcpy(new_inode.file_path, to);
-	strcpy(new_inode.file_parent, get_parent(to));
+	strcpy(superb.inodes[from_idx].file_name, get_last_element(to));
+	strcpy(superb.inodes[from_idx].file_path, to);
+	strcpy(superb.inodes[from_idx].file_parent, get_parent(to));
 
 	int new_idx = set_inode_in_superblock(&new_inode);
 	if (new_idx < 0)
@@ -594,6 +594,7 @@ fisopfs_link(const char *from, const char *to)
 	       "from_idx: %d - new_idx: %d\n",
 	       from_idx,
 	       new_idx);
+	superb.bitmap_inodos[from_idx] = OCCUPIED;
 
 	return 0;
 }

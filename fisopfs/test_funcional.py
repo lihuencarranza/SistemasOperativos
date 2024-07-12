@@ -224,7 +224,6 @@ def test_chown_file():
         f = open(route, 'w')
         f.close()
         
-        # Cambia estos valores a los UID y GID de prueba que tengas disponibles
         new_uid = 1001  # Reemplaza con un UID diferente de 1000
         new_gid = 1001  # Reemplaza con un GID diferente de 1000
         
@@ -236,22 +235,25 @@ def test_chown_file():
             print_msg("cross", "No se cambió el propietario de archivo.")
     except Exception as e:
         print_msg("cross", str(e))
+    os.remove(route)
 
 def test_list_files_in_dir():
   try:
-    print("=== Prueba de listar archivos en directorio ===")
-    sanear_directorios()
-    dir_route = MOUNT_POINT+"/directorio_prueba"
-    os.mkdir(dir_route)
-    file_names = ["archivo1.txt", "archivo2.txt", "archivo3.txt"]
-    for file_name in file_names:
-      f = open(dir_route + "/" + file_name, 'w')
-      f.close()
-    listed_files = os.listdir(dir_route)
-    if sorted(file_names) == sorted(listed_files):
-      print_msg("tick", "Archivos se listan exitosamente en el directorio.")
+    print("=== Prueba de hard link ===")
+    
+    with open("ar1.txt", "w") as f:
+      f.write("hola\n")
+    os.link("ar1.txt", "ar2.txt")
+    with open("ar2.txt", "w") as f:
+      f.write("chau\n")
+    
+    with open("ar1.txt", "r") as f:
+      content = f.read()
+    
+    if content == "chau\n":
+      print_msg("tick", "Hard links funcionan correctamente.")
     else:
-      print_msg("cross", "No se listaron todos los archivos en el directorio.")
+      print_msg("cross", "Los hard links no funcionan como se esperaba.")
   except Exception as e:
     print_msg("cross", e)
     
@@ -299,8 +301,8 @@ if __name__ == "__main__":
   print("\n\n[[[[[ Pruebas de archivos y directorios ]]]]]")
   test_delete_dir_deletes_childrens()
   
-  print("\n\n[[[[[ CHANLLENGE ]]]]]")
   
+  print("\n\n[[[[[ CHANLLENGE ]]]]]")
   
   print("\n\n[[[[[ Pruebas de permisos y propietarios ]]]]]")
   test_chmod_file()
