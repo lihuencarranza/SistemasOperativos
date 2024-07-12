@@ -254,6 +254,28 @@ def test_list_files_in_dir():
       print_msg("cross", "No se listaron todos los archivos en el directorio.")
   except Exception as e:
     print_msg("cross", e)
+    
+def test_create_hard_link():
+  try:
+    print("=== Prueba de creación de hard link ===")
+    sanear_directorios()
+    route = MOUNT_POINT + "/archivo_prueba.txt"
+    link_route = MOUNT_POINT + "/hard_link_prueba.txt"
+
+    with open(route, 'w') as f:
+      f.write("Contenido del archivo original")
+
+    os.link(route, link_route)
+
+    with open(link_route, 'r') as f:
+      contenido_link = f.read()
+    
+    if os.path.exists(link_route) and contenido_link == "Contenido del archivo original":
+      print_msg("tick", "Hard link se crea exitosamente.")
+    else:
+      print_msg("cross", "No se creó el hard link o su contenido es incorrecto.")
+  except Exception as e:
+    print_msg("cross", str(e))
 
 #
 
@@ -283,3 +305,8 @@ if __name__ == "__main__":
   
   print("\n\n[[[[[ Pruebas de listado de archivos ]]]]]")
   test_list_files_in_dir()
+  
+  print("\n\n[[[[[ Prueba de hard link ]]]]]")
+  test_create_hard_link()
+  
+  sanear_directorios()

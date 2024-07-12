@@ -555,9 +555,16 @@ fisopfs_link(const char *from, const char *to)
 	strcpy(new_inode.file_parent, get_parent(to));
 
 	int new_idx = set_inode_in_superblock(&new_inode);
-	if (new_idx < 0) {
+	if (new_idx < 0)
 		return new_idx;
-	}
+
+	superb.inodes[new_idx] = new_inode;
+	superb.bitmap_inodos[new_idx] = OCCUPIED;
+
+	printf("[debug] fisopfs_link - hard link creado exitosamente - "
+	       "from_idx: %d - new_idx: %d\n",
+	       from_idx,
+	       new_idx);
 
 	return 0;
 }
