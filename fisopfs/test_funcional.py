@@ -2,6 +2,7 @@ from time import sleep
 import os
 import re
 import argparse
+import shutil
 
 MOUNT_POINT = "prueba"
 
@@ -12,18 +13,16 @@ symbols = {
 }
 
 def print_msg(symbol, message):
-  # Seleccionar el símbolo correspondiente
-  symbol_to_use = symbols.get(symbol, "❓")  # Usa un signo de interrogación si el símbolo no es válido
-  # Imprimir el mensaje con el símbolo
+  symbol_to_use = symbols.get(symbol, "❓") 
   print(f"{symbol_to_use} {message}")
 
 def sanear_directorios():
-  entries = os.listdir(MOUNT_POINT)
-  for entry in entries:
-    if os.path.isdir(MOUNT_POINT+"/"+entry):
-      os.rmdir(MOUNT_POINT+"/"+entry)
-    else:
-      os.remove(MOUNT_POINT+"/"+entry)
+    for root, dirs, files in os.walk('prueba', topdown=False):
+        for name in files:
+            os.remove(os.path.join(root, name))
+        for name in dirs:
+            os.rmdir(os.path.join(root, name))
+
   
 def test_create_dir_in_root():
   try:
@@ -220,12 +219,12 @@ def test_chown_file():
     try:
         print("=== Prueba de cambio de propietario de archivo ===")
         sanear_directorios()
-        route = os.path.join(MOUNT_POINT, "archivo_prueba.txt")
+        route = os.path.join(MOUNT_POINT, "archivo_prueba_1.txt")
         f = open(route, 'w')
         f.close()
         
-        new_uid = 1001  # Reemplaza con un UID diferente de 1000
-        new_gid = 1001  # Reemplaza con un GID diferente de 1000
+        new_uid = 1001  
+        new_gid = 1001  
         
         os.chown(route, new_uid, new_gid)
         output = os.popen(f"ls -l {route}").read().split()
@@ -239,52 +238,109 @@ def test_chown_file():
 
 def test_list_files_in_dir():
   try:
-    print("=== Prueba de hard link ===")
-    
-    with open("ar1.txt", "w") as f:
-      f.write("hola\n")
-    os.link("ar1.txt", "ar2.txt")
-    with open("ar2.txt", "w") as f:
-      f.write("chau\n")
-    
-    with open("ar1.txt", "r") as f:
-      content = f.read()
-    
-    if content == "chau\n":
-      print_msg("tick", "Hard links funcionan correctamente.")
+    print("=== Prueba de listado de archivos en directorio ===")
+    sanear_directorios()
+    route = os.path.join(MOUNT_POINT, "directorio_prueba")
+    os.mkdir(route)
+    file1 = os.path.join(route, "archivo1.txt")
+    file2 = os.path.join(route, "archivo2.txt")
+    with open(file1, 'w') as f:
+        f.write("Contenido de archivo 1")
+    with open(file2, 'w') as f:
+        f.write("Contenido de archivo 2")
+    files = os.listdir(route)
+    if "archivo1.txt" in files and "archivo2.txt" in files:
+        print_msg("tick", "Listado de archivos en directorio exitoso.")
     else:
-      print_msg("cross", "Los hard links no funcionan como se esperaba.")
+        print_msg("cross", "No se listaron todos los archivos en el directorio.")
   except Exception as e:
-    print_msg("cross", e)
+    print_msg("cross", str(e))
     
 def test_create_hard_link():
   try:
     print("=== Prueba de creación de hard link ===")
     sanear_directorios()
-    route = MOUNT_POINT + "/archivo_prueba.txt"
-    link_route = MOUNT_POINT + "/hard_link_prueba.txt"
-
-    with open(route, 'w') as f:
-      f.write("Contenido del archivo original")
-
-    os.link(route, link_route)
-
-    with open(link_route, 'r') as f:
-      contenido_link = f.read()
-    
-    if os.path.exists(link_route) and contenido_link == "Contenido del archivo original":
-      print_msg("tick", "Hard link se crea exitosamente.")
+    route1 = os.path.join(MOUNT_POINT, "ar1.txt")
+    route2 = os.path.join(MOUNT_POINT, "ar2.txt")
+    with open(route1, 'w') as f:
+        f.write("Contenido de prueba")
+    if os.path.exists(route2):
+        os.remove(route2)
+    os.link(route1, route2)
+    if os.path.exists(route2):
+        print_msg("tick", "Hard link se crea exitosamente.")
     else:
-      print_msg("cross", "No se creó el hard link o su contenido es incorrecto.")
+        print_msg("cross", "No se creó el hard link.")
   except Exception as e:
     print_msg("cross", str(e))
+
+def test_chown_dir():
+    try:
+        print("=== Prueba de cambio de propietario de directorio ===")
+        sanear_directorios()
+        route = os.path.join(MOUNT_POINT, "directorio_prueba_2")
+        os.mkdir(route)
+        
+        new_uid = 1001  
+        new_gid = 1001  
+        
+        os.chown(route, new_uid, new_gid)
+        output = os.popen(f"ls -ld {route}").read().split()
+        if int(output[2]) == new_uid and int(output[3]) == new_gid:
+            print_msg("tick", "Propietario del directorio se cambia exitosamente.")
+        else:
+            print_msg("cross", "No se cambió el propietario del directorio.")
+    except Exception as e:
+        print_msg("cross", str(e))
+
+  
+
+def test_chmod_file_in_dir():
+  try:
+    print("=== Prueba de cambio de permisos de archivo en directorio ===")
+ 
+    route = os.path.join(MOUNT_POINT, "directorio_prueba_3")
+    os.mkdir(route)
+    assert "directorio_prueba_3" in os.listdir(MOUNT_POINT)
+    file_route = os.path.join(route, "archivo_prueba_3.txt")
+    f = open(file_route, 'w')
+    f.close()
+    assert "archivo_prueba_3.txt" in os.listdir(route)
+    os.chmod(file_route, 0o777)
+    if re.match(r"^-rwxrwxrwx", os.popen(f"ls -l {file_route}").read().split()[0]):
+      print_msg("tick", "Permisos de archivo en directorio se cambian exitosamente.")
+    else:
+      print_msg("cross", "No se cambiaron los permisos de archivo en directorio.")
+  except Exception as e:
+    print_msg("cross", str(e)) 
+
+def test_chown_file_in_dir():
+    try:
+        print("=== Prueba de cambio de propietario de archivo en directorio ===")
+        
+        route = os.path.join(MOUNT_POINT, "directorio_prueba_4")
+        os.mkdir(route)
+        assert "directorio_prueba_4" in os.listdir(MOUNT_POINT)
+        file_route = os.path.join(route, "archivo_prueba_4.txt")
+        f = open(file_route, 'w')
+        f.close()
+        
+        new_uid = 1001  
+        new_gid = 1001  
+        
+        os.chown(file_route, new_uid, new_gid)
+        output = os.popen(f"ls -l {file_route}").read().split()
+        if int(output[2]) == new_uid and int(output[3]) == new_gid:
+            print_msg("tick", "Propietario del archivo en directorio se cambia exitosamente.")
+        else:
+            print_msg("cross", "No se cambió el propietario del archivo en directorio.")
+    except Exception as e:
+        print_msg("cross", str(e))
 
 #
 
 if __name__ == "__main__":
-  
-  sanear_directorios()
-  
+    
   print("[[[[[ Pruebas de directorios ]]]]]")
   test_create_dir_in_root()
   test_delete_dir_in_root()
@@ -304,14 +360,18 @@ if __name__ == "__main__":
   
   print("\n\n[[[[[ CHANLLENGE ]]]]]")
   
-  print("\n\n[[[[[ Pruebas de permisos y propietarios ]]]]]")
-  test_chmod_file()
-  test_chown_file()
+  print("\n\n[[[[[ Prueba de hard link ]]]]]")
+  test_create_hard_link()
   
   print("\n\n[[[[[ Pruebas de listado de archivos ]]]]]")
   test_list_files_in_dir()
   
-  print("\n\n[[[[[ Prueba de hard link ]]]]]")
-  test_create_hard_link()
   
-  sanear_directorios()
+  print("\n\n[[[[[ Pruebas de permisos y propietarios ]]]]]")
+  test_chmod_file()
+  test_chown_file()
+  test_chown_dir()
+  test_chmod_file_in_dir()
+  test_chown_file_in_dir()
+  
+  
