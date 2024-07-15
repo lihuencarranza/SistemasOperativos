@@ -152,6 +152,7 @@ fisopfs_readdir(const char *path,
 
 	filler(buffer, ".", NULL, 0);
 	filler(buffer, "..", NULL, 0);
+
 	int index = get_inode_index_from_path(path);
 	if (index == BAD_INDEX) {
 		printf("[debug] fisopfs_READDIR - path: \"%s\" Indice no "
@@ -160,6 +161,7 @@ fisopfs_readdir(const char *path,
 		errno = -ENOENT;
 		return -ENOENT;
 	}
+
 	inode_t dir_inode = superb.inodes[index];
 
 	if (dir_inode.type != IS_DIR) {
@@ -174,8 +176,9 @@ fisopfs_readdir(const char *path,
 	for (int j = 0; j < MAX_INODES; j++) {
 		if (superb.bitmap_inodos[j] == OCCUPIED &&
 		    strcmp(superb.inodes[j].file_parent, path) == 0) {
+			printf("[debug] fisopfs_readdir - encontrado: %s\n",
+			       superb.inodes[j].file_name);
 			filler(buffer, superb.inodes[j].file_name, NULL, 0);
-		} else {
 		}
 	}
 	return 0;
@@ -330,6 +333,12 @@ fisopfs_write(const char *path,
 		return -EACCES;
 	}
 
+	struct fuse_context *context = fuse_get_context();
+	if (i->uid != context->uid) {
+		fprintf(stderr, "[debug] Error write: %s\n", strerror(errno));
+		return -EPERM;
+	}
+
 	strncpy(i->file_content + offset, buffer, size);
 	i->atime = time(NULL);
 	i->mtime = time(NULL);
@@ -472,27 +481,21 @@ fisopfs_init(struct fuse_conn_info *conn)
 	return 0;
 }
 
-// This function checks if the user has the required permissions to perform an
-// operation on a file or directory.
-static int
-has_permission(const inode_t *inode, int mask)
+static void
+update_mode_in_linked_inodes(int index, mode_t mode)
 {
-	uid_t uid = getuid();
-	gid_t gid = getgid();
-
-	if (uid == 0) {
-		return 1;
+	for (int i = 0; i < MAX_INODES; i++) {
+		if (superb.bitmap_inodos[i] == OCCUPIED &&
+		    superb.inodes[i].nlink > 1 &&
+		    strcmp(superb.inodes[i].file_content,
+		           superb.inodes[index].file_content) == 0) {
+			superb.inodes[i].mode = mode;
+			printf("[debug] Modo actualizado en inodo vinculado: "
+			       "%d - Nuevo modo: %o\n",
+			       i,
+			       mode);
+		}
 	}
-
-	if (uid == inode->uid) {
-		return (inode->mode & mask) == mask;
-	}
-
-	if (gid == inode->gid) {
-		return (inode->mode & (mask >> 3)) == (mask >> 3);
-	}
-
-	return (inode->mode & (mask >> 6)) == (mask >> 6);
 }
 
 static int
@@ -506,12 +509,32 @@ fisopfs_chmod(const char *path, mode_t mode)
 		       path);
 		return -ENOENT;
 	}
+
+	// Check if the user has the required permissions to change the mode of
+	// the file.
+	struct fuse_context *context = fuse_get_context();
+	if (superb.inodes[index].uid != context->uid) {
+		printf("[debug] fisopfs_chmod - path: \"%s\" FALLÓ POR NO "
+		       "TENER "
+		       "PERMISOS\n",
+		       path);
+		return -EPERM;
+	}
+
 	printf("[debug] fisopfs_chmod - path: %s - mode anterior: %d - mode "
 	       "nuevo: %d\n",
 	       path,
 	       superb.inodes[index].mode,
 	       mode);
+
+	// Update the mode in all linked inodes
+	update_mode_in_linked_inodes(index, mode);
+
 	superb.inodes[index].mode = mode;
+
+	printf("[debug] fisopfs_chmod - path: %s - Modo actualizado: %o\n",
+	       path,
+	       superb.inodes[index].mode);
 
 	return EXIT_SUCCESS;
 }
