@@ -6,4 +6,4 @@
 
 void free_command(struct cmd *c);
 
-#endif  // FREECMD_H
+#endif // FREECMD_H

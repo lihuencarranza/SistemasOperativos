@@ -13,4 +13,4 @@ int pwd(char *cmd);
 
 int history(char *cmd);
 
-#endif  // BUILTIN_H
+#endif // BUILTIN_H
