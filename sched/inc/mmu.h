@@ -27,16 +27,16 @@
 // use PGADDR(PDX(la), PTX(la), PGOFF(la)).
 
 // page number field of address
-#define PGNUM(la) (((uintptr_t)(la)) >> PTXSHIFT)
+#define PGNUM(la) (((uintptr_t) (la)) >> PTXSHIFT)
 
 // page directory index
-#define PDX(la) ((((uintptr_t)(la)) >> PDXSHIFT) & 0x3FF)
+#define PDX(la) ((((uintptr_t) (la)) >> PDXSHIFT) & 0x3FF)
 
 // page table index
-#define PTX(la) ((((uintptr_t)(la)) >> PTXSHIFT) & 0x3FF)
+#define PTX(la) ((((uintptr_t) (la)) >> PTXSHIFT) & 0x3FF)
 
 // offset in page
-#define PGOFF(la) (((uintptr_t)(la)) & 0xFFF)
+#define PGOFF(la) (((uintptr_t) (la)) & 0xFFF)
 
 // construct linear address from indexes and offset
 #define PGADDR(d, t, o) ((void *) ((d) << PDXSHIFT | (t) << PTXSHIFT | (o)))
@@ -73,7 +73,7 @@
 #define PTE_SYSCALL (PTE_AVAIL | PTE_P | PTE_W | PTE_U)
 
 // Address in page table or page directory entry
-#define PTE_ADDR(pte) ((physaddr_t)(pte) & ~0xFFF)
+#define PTE_ADDR(pte) ((physaddr_t) (pte) & ~0xFFF)
 
 // Control Register flags
 #define CR0_PE 0x00000001  // Protection Enable
