@@ -12,7 +12,7 @@ __all__ = []
 
 __all__ += ["test", "end_part", "run_tests", "get_current_test"]
 
-TESTS = []
+TESTS = [] 
 TOTAL = POSSIBLE = 0
 PART_TOTAL = PART_POSSIBLE = 0
 CURRENT_TEST = None
