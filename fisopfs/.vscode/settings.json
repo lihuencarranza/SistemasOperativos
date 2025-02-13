@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    "stat.h": "c",
+    "file.h": "c",
+    "functional": "c",
+    "fisopfs.h": "c"
+  }
+}
