@@ -83,7 +83,7 @@ serial_init(void)
 
 	// Set speed; requires DLAB latch
 	outb(COM1 + COM_LCR, COM_LCR_DLAB);
-	outb(COM1 + COM_DLL, (uint8_t)(115200 / 9600));
+	outb(COM1 + COM_DLL, (uint8_t) (115200 / 9600));
 	outb(COM1 + COM_DLM, 0);
 
 	// 8 data bits, 1 stop bit, parity off; turn off DLAB latch

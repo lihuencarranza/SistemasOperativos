@@ -440,7 +440,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 //
 // Hint: the TA solution uses pgdir_walk
 #define LPGSIZE (1 << 22)
-#define LPG_OFF(la) (((uintptr_t)(la)) & 0x3fffff)
+#define LPG_OFF(la) (((uintptr_t) (la)) & 0x3fffff)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {

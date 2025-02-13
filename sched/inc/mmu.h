@@ -140,7 +140,7 @@
 	.word 0, 0;                                                            \
 	.byte 0, 0, 0, 0
 #define SEG(type, base, lim)                                                   \
-	.word(((lim) >> 12) & 0xffff), ((base) &0xffff);                       \
+	.word(((lim) >> 12) & 0xffff), ((base) & 0xffff);                      \
 	.byte(((base) >> 16) & 0xff), (0x90 | (type)),                         \
 	        (0xC0 | (((lim) >> 28) & 0xf)), (((base) >> 24) & 0xff)
 
@@ -175,16 +175,16 @@ struct Segdesc {
 		0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0                          \
 	}
 // Normal segment
-#define SEG(type, base, lim, dpl)                                              \
-	{                                                                      \
-		((lim) >> 12) & 0xffff, (base) &0xffff, ((base) >> 16) & 0xff, \
-		        type, 1, dpl, 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,   \
-		        (unsigned) (base) >> 24                                \
+#define SEG(type, base, lim, dpl)                                               \
+	{                                                                       \
+		((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff, \
+		        type, 1, dpl, 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,    \
+		        (unsigned) (base) >> 24                                 \
 	}
 #define SEG16(type, base, lim, dpl)                                            \
 	(struct Segdesc)                                                       \
 	{                                                                      \
-		(lim) & 0xffff, (base) &0xffff, ((base) >> 16) & 0xff, type,   \
+		(lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff, type,  \
 		        1, dpl, 1, (unsigned) (lim) >> 16, 0, 0, 1, 0,         \
 		        (unsigned) (base) >> 24                                \
 	}
@@ -292,7 +292,7 @@ struct Gatedesc {
 //	  this interrupt/trap gate explicitly using an int instruction.
 #define SETGATE(gate, istrap, sel, off, dpl)                                   \
 	{                                                                      \
-		(gate).gd_off_15_0 = (uint32_t)(off) &0xffff;                  \
+		(gate).gd_off_15_0 = (uint32_t) (off) & 0xffff;                \
 		(gate).gd_sel = (sel);                                         \
 		(gate).gd_args = 0;                                            \
 		(gate).gd_rsv1 = 0;                                            \
@@ -300,13 +300,13 @@ struct Gatedesc {
 		(gate).gd_s = 0;                                               \
 		(gate).gd_dpl = (dpl);                                         \
 		(gate).gd_p = 1;                                               \
-		(gate).gd_off_31_16 = (uint32_t)(off) >> 16;                   \
+		(gate).gd_off_31_16 = (uint32_t) (off) >> 16;                  \
 	}
 
 // Set up a call gate descriptor.
 #define SETCALLGATE(gate, sel, off, dpl)                                       \
 	{                                                                      \
-		(gate).gd_off_15_0 = (uint32_t)(off) &0xffff;                  \
+		(gate).gd_off_15_0 = (uint32_t) (off) & 0xffff;                \
 		(gate).gd_sel = (sel);                                         \
 		(gate).gd_args = 0;                                            \
 		(gate).gd_rsv1 = 0;                                            \
@@ -314,7 +314,7 @@ struct Gatedesc {
 		(gate).gd_s = 0;                                               \
 		(gate).gd_dpl = (dpl);                                         \
 		(gate).gd_p = 1;                                               \
-		(gate).gd_off_31_16 = (uint32_t)(off) >> 16;                   \
+		(gate).gd_off_31_16 = (uint32_t) (off) >> 16;                  \
 	}
 
 // Pseudo-descriptors used for LGDT, LLDT and LIDT instructions.
