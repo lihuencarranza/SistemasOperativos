@@ -158,7 +158,7 @@ parse_exec(char *buf_cmd)
 			c->argv[argc++] = tok;
 		}
 	}
-
+ 
 	c->argv[argc] = (char *) NULL;
 	c->argc = argc;
 
